@@ -1,1 +1,1 @@
-loadstring(game:Httpget("https://raw.githubusercontent.com/hothiptv/Anscript/refs/heads/main/Anscript"))()
+loadstring(game:HttpGet("https://raw.githubusercontent.com/hothiptv/Anscript/refs/heads/main/Anscript"))()
