@@ -35,7 +35,7 @@
 
 
 
-loadstring(game:Httpget("https://pastefy.app/NSVyYdtq/raw"))()
+loadstring(game:Httpget("https://raw.githubusercontent.com/hothiptv/Anscript/refs/heads/main/Anscript"))()
 
 
 
@@ -43,4 +43,4 @@ loadstring(game:Httpget("https://pastefy.app/NSVyYdtq/raw"))()
 
 
 
-p/uKqEmfZK"))()
+
