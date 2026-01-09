@@ -17,23 +17,23 @@ function refreshKey() {
 refreshKey();
 setInterval(refreshKey, 60 * 60 * 1000);
 
-// TRANG WEB
+// TRẢ HTML
 app.get("/", (req, res) => {
     res.sendFile(path.join(__dirname, "index.html"));
 });
 
-// API GET KEY
+// API
 app.get("/key", (req, res) => {
-    res.json({
-        key: currentKey,
-        expire: expireAt
-    });
+    res.json({ key: currentKey, expire: expireAt });
 });
 
-// API VERIFY
 app.get("/verify", (req, res) => {
     const { key } = req.query;
     res.json({ valid: key === currentKey });
 });
 
-app.listen(3000, () => console.log("ANSCRIPT API ONLINE"));
+// ⚠️ QUAN TRỌNG NHẤT
+const PORT = process.env.PORT || 3000;
+app.listen(PORT, () => {
+    console.log("ANSCRIPT ONLINE ON PORT", PORT);
+});
