@@ -2,89 +2,46 @@
 <html lang="vi">
 <head>
 <meta charset="UTF-8">
-<title>ANSCRIPT - Get Key</title>
+<title>ANSCRIPT KEY SYSTEM</title>
 <style>
-    body {
-        background: #0e0e14;
-        color: #eaeaff;
-        font-family: Arial, sans-serif;
-        display: flex;
-        justify-content: center;
-        align-items: center;
-        height: 100vh;
-    }
-    .box {
-        background: #161622;
-        border: 1px solid #6f5cff;
-        padding: 25px;
-        border-radius: 10px;
-        text-align: center;
-        width: 320px;
-    }
-    h1 {
-        color: #9d8cff;
-        margin-bottom: 10px;
-    }
-    #key {
-        background: #0e0e14;
-        padding: 10px;
-        border-radius: 6px;
-        margin: 15px 0;
-        font-size: 18px;
-        letter-spacing: 2px;
-        user-select: all;
-    }
-    button {
-        background: #6f5cff;
-        color: white;
-        border: none;
-        padding: 10px 15px;
-        border-radius: 6px;
-        cursor: pointer;
-        font-size: 15px;
-    }
-    button:hover {
-        background: #8577ff;
-    }
-    .note {
-        font-size: 12px;
-        color: #aaa;
-        margin-top: 10px;
-    }
+body{
+    background:#0e0e14;
+    color:#d6c8ff;
+    font-family:Arial;
+    text-align:center;
+    margin-top:80px;
+}
+button{
+    padding:12px 24px;
+    background:#7a5cff;
+    border:none;
+    color:white;
+    font-size:16px;
+    border-radius:8px;
+    cursor:pointer;
+}
+#key{
+    margin-top:20px;
+    font-size:20px;
+}
 </style>
 </head>
 <body>
 
-<div class="box">
-    <h1>ANSCRIPT</h1>
-    <p>Key có hiệu lực trong <b>1 giờ</b></p>
+<h1>ANSCRIPT GET KEY</h1>
+<p>Key sẽ đổi mỗi 1 giờ</p>
 
-    <div id="key">Đang tải...</div>
-
-    <button onclick="copyKey()">📋 Copy Key</button>
-
-    <div class="note">
-        Dán key này vào UI trong Roblox
-    </div>
-</div>
+<button onclick="getKey()">LẤY KEY</button>
+<div id="key"></div>
 
 <script>
-let currentKey = "";
-
-fetch("/getkey")
-    .then(res => res.json())
-    .then(data => {
-        currentKey = data.key;
-        document.getElementById("key").innerText = currentKey;
-    })
-    .catch(() => {
-        document.getElementById("key").innerText = "Lỗi server";
+function getKey(){
+    fetch("/getkey")
+    .then(r=>r.json())
+    .then(d=>{
+        document.getElementById("key").innerText = "KEY: " + d.key;
+        navigator.clipboard.writeText(d.key);
     });
-
-function copyKey() {
-    if (!currentKey) return;
-    navigator.clipboard.writeText(currentKey);
-    alert("Đã copy key: " + currentKey);
 }
 </script>
 
