@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<title>ANSCRIPT Unlock</title>
+
+<style>
+body {
+  background:#0d0d1a;
+  color:#fff;
+  font-family:Arial;
+  display:flex;
+  justify-content:center;
+  align-items:center;
+  height:100vh;
+}
+.box {
+  background:#16162b;
+  padding:30px;
+  border-radius:14px;
+  width:360px;
+  text-align:center;
+  box-shadow:0 0 40px rgba(150,90,255,.3);
+}
+button {
+  width:100%;
+  padding:14px;
+  border:none;
+  border-radius:10px;
+  background:#8f6bff;
+  color:#fff;
+  font-size:16px;
+  cursor:pointer;
+}
+button:disabled {
+  background:#444;
+}
+.info {
+  margin-top:12px;
+  font-size:14px;
+}
+</style>
+</head>
+
+<body>
+
+<div class="box">
+  <h2>ANSCRIPT</h2>
+  <p>Nhấn liên tục để mở khóa</p>
+
+  <button id="tapBtn">NHẤN</button>
+  <button id="unlockBtn" disabled>MỞ KHÓA</button>
+
+  <div class="info" id="info">Chưa đủ điều kiện</div>
+</div>
+
+<script>
+let clicks = 0;
+let startTime = null;
+
+const tapBtn = document.getElementById("tapBtn");
+const unlockBtn = document.getElementById("unlockBtn");
+const info = document.getElementById("info");
+
+tapBtn.onclick = () => {
+  if (!startTime) startTime = Date.now();
+
+  clicks++;
+
+  const elapsed = (Date.now() - startTime) / 1000;
+
+  // YÊU CẦU: click rất nhanh trong thời gian ngắn
+  if (elapsed <= 5 && clicks >= 60) {
+    unlockBtn.disabled = false;
+    info.innerText = "Đủ điều kiện, có thể mở khóa";
+  } else {
+    info.innerText = `Clicks: ${clicks} | Time: ${elapsed.toFixed(1)}s`;
+  }
+
+  // Reset nếu quá chậm
+  if (elapsed > 5) {
+    clicks = 0;
+    startTime = null;
+    unlockBtn.disabled = true;
+    info.innerText = "Quá chậm, reset";
+  }
+};
+
+unlockBtn.onclick = async () => {
+  const res = await fetch("/unlock");
+  const data = await res.json();
+
+  if (data.success) {
+    info.innerText = "Đã mở khóa (1 giờ)";
+    unlockBtn.disabled = true;
+  }
+};
+</script>
+
+</body>
+</html> 
