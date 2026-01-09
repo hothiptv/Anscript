@@ -2,100 +2,104 @@
 <html lang="vi">
 <head>
 <meta charset="UTF-8">
-<title>ANSCRIPT Unlock</title>
-
+<title>ANSCRIPT | Get Key</title>
 <style>
-body {
-  background:#0d0d1a;
-  color:#fff;
-  font-family:Arial;
-  display:flex;
-  justify-content:center;
-  align-items:center;
-  height:100vh;
-}
-.box {
-  background:#16162b;
-  padding:30px;
-  border-radius:14px;
-  width:360px;
-  text-align:center;
-  box-shadow:0 0 40px rgba(150,90,255,.3);
-}
-button {
-  width:100%;
-  padding:14px;
-  border:none;
-  border-radius:10px;
-  background:#8f6bff;
-  color:#fff;
-  font-size:16px;
-  cursor:pointer;
-}
-button:disabled {
-  background:#444;
-}
-.info {
-  margin-top:12px;
-  font-size:14px;
-}
+    body {
+        background: #0e0e14;
+        color: #eee;
+        font-family: Arial, sans-serif;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        height: 100vh;
+    }
+    .box {
+        background: #151522;
+        border-radius: 12px;
+        padding: 30px;
+        width: 320px;
+        text-align: center;
+        box-shadow: 0 0 20px rgba(140,100,255,0.3);
+    }
+    button {
+        background: linear-gradient(135deg,#8c6cff,#5a3cff);
+        border: none;
+        color: white;
+        padding: 12px;
+        width: 100%;
+        border-radius: 8px;
+        font-size: 16px;
+        cursor: pointer;
+        margin-top: 15px;
+    }
+    .key {
+        margin-top: 15px;
+        background: #0e0e18;
+        padding: 10px;
+        border-radius: 6px;
+        font-family: monospace;
+        user-select: all;
+    }
+    .time {
+        font-size: 13px;
+        opacity: 0.7;
+        margin-top: 10px;
+    }
 </style>
 </head>
-
 <body>
 
 <div class="box">
-  <h2>ANSCRIPT</h2>
-  <p>Nhấn liên tục để mở khóa</p>
-
-  <button id="tapBtn">NHẤN</button>
-  <button id="unlockBtn" disabled>MỞ KHÓA</button>
-
-  <div class="info" id="info">Chưa đủ điều kiện</div>
+    <h2>ANSCRIPT KEY</h2>
+    <button onclick="generateKey()">TẠO KEY</button>
+    <div id="keyBox" class="key">Chưa tạo key</div>
+    <div id="timeBox" class="time"></div>
 </div>
 
 <script>
-let clicks = 0;
-let startTime = null;
+function getHourSeed() {
+    return Math.floor(Date.now() / 3600000);
+}
 
-const tapBtn = document.getElementById("tapBtn");
-const unlockBtn = document.getElementById("unlockBtn");
-const info = document.getElementById("info");
+function hash(seed) {
+    let str = seed.toString();
+    let h = 0;
+    for (let i = 0; i < str.length; i++) {
+        h = (h << 5) - h + str.charCodeAt(i);
+        h |= 0;
+    }
+    return Math.abs(h).toString(36);
+}
 
-tapBtn.onclick = () => {
-  if (!startTime) startTime = Date.now();
+function generateKey() {
+    const hour = getHourSeed();
+    const key = "ans-" + hash(hour).substring(0, 10);
 
-  clicks++;
+    localStorage.setItem("anscript_key", key);
+    localStorage.setItem("anscript_hour", hour);
 
-  const elapsed = (Date.now() - startTime) / 1000;
+    document.getElementById("keyBox").innerText = key;
+    updateTime(hour);
+}
 
-  // YÊU CẦU: click rất nhanh trong thời gian ngắn
-  if (elapsed <= 5 && clicks >= 60) {
-    unlockBtn.disabled = false;
-    info.innerText = "Đủ điều kiện, có thể mở khóa";
-  } else {
-    info.innerText = `Clicks: ${clicks} | Time: ${elapsed.toFixed(1)}s`;
-  }
+function updateTime(hour) {
+    const expire = (hour + 1) * 3600000;
+    const mins = Math.floor((expire - Date.now()) / 60000);
+    document.getElementById("timeBox").innerText =
+        "Key hết hạn sau " + mins + " phút";
+}
 
-  // Reset nếu quá chậm
-  if (elapsed > 5) {
-    clicks = 0;
-    startTime = null;
-    unlockBtn.disabled = true;
-    info.innerText = "Quá chậm, reset";
-  }
-};
+// auto load nếu đã có
+(function(){
+    const savedKey = localStorage.getItem("anscript_key");
+    const savedHour = localStorage.getItem("anscript_hour");
 
-unlockBtn.onclick = async () => {
-  const res = await fetch("/unlock");
-  const data = await res.json();
-
-  if (data.success) {
-    info.innerText = "Đã mở khóa (1 giờ)";
-    unlockBtn.disabled = true;
-  }
-};
+    if (savedKey && savedHour == getHourSeed()) {
+        document.getElementById("keyBox").innerText = savedKey;
+        updateTime(savedHour);
+    }
+})();
 </script>
 
 </body>
-</html> 
+</html>
