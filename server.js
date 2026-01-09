@@ -4,26 +4,17 @@ const app = express();
 let unlockExpire = 0;
 
 app.use(express.json());
-
-app.get("/", (req, res) => {
-  res.sendFile(__dirname + "/index.html");
-});
+app.use(express.static("public")); // ⚠️ CỰC KỲ QUAN TRỌNG
 
 app.get("/unlock", (req, res) => {
-  unlockExpire = Date.now() + 60 * 60 * 1000; // 1 giờ
-
-  res.json({
-    success: true,
-    expire: unlockExpire
-  });
+  unlockExpire = Date.now() + 60 * 60 * 1000;
+  res.json({ success: true });
 });
 
 app.get("/check", (req, res) => {
-  if (Date.now() < unlockExpire) {
-    res.json({ unlocked: true });
-  } else {
-    res.json({ unlocked: false });
-  }
+  res.json({
+    unlocked: Date.now() < unlockExpire
+  });
 });
 
 const PORT = process.env.PORT || 3000;
