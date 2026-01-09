@@ -1,17 +1,56 @@
 <!DOCTYPE html>
-<html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<title>ANSCRIPT - Get Key</title>
+<style>
+body {
+    background:#0f0f1a;
+    color:#fff;
+    font-family: Arial;
+    display:flex;
+    justify-content:center;
+    align-items:center;
+    height:100vh;
+}
+.box {
+    background:#1a1a2e;
+    padding:30px;
+    border-radius:12px;
+    text-align:center;
+    width:320px;
+}
+button {
+    margin-top:15px;
+    padding:10px 20px;
+    border:none;
+    border-radius:8px;
+    background:#9b6bff;
+    color:white;
+    font-size:16px;
+    cursor:pointer;
+}
+#key {
+    margin-top:15px;
+    font-size:18px;
+    color:#7CFF9E;
+}
+</style>
+</head>
 <body>
-<button onclick="getKey()">LẤY KEY</button>
-<p id="k"></p>
+<div class="box">
+    <h2>ANSCRIPT GET KEY</h2>
+    <button onclick="getKey()">LẤY KEY</button>
+    <div id="key"></div>
+</div>
 
 <script>
 function getKey() {
-  fetch("/key")
-    .then(r => r.json())
-    .then(d => {
-      document.getElementById("k").innerText = d.key;
-      navigator.clipboard.writeText(d.key);
-    });
+    fetch("/key")
+        .then(res => res.json())
+        .then(data => {
+            document.getElementById("key").innerText = data.key;
+        });
 }
 </script>
 </body>
