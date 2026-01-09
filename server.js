@@ -1,21 +1,31 @@
 const express = require("express");
 const app = express();
-const PORT = process.env.PORT || 3000;
 
-// cho phép dùng file tĩnh
-app.use(express.static(__dirname));
+let currentKey = "";
+let expireAt = 0;
 
-app.get("/", (req, res) => {
-    res.sendFile(__dirname + "/index.html");
-});
+function genKey() {
+    return "ans-" + Math.random().toString(36).slice(2, 8);
+}
 
-app.get("/getkey", (req, res) => {
+function refreshKey() {
+    currentKey = genKey();
+    expireAt = Date.now() + 60 * 60 * 1000; // 1 giờ
+}
+
+refreshKey();
+setInterval(refreshKey, 60 * 60 * 1000);
+
+app.get("/key", (req, res) => {
     res.json({
-        key: "ans-pikxoe",
-        expires_in: "1 hour"
+        key: currentKey,
+        expire: expireAt
     });
 });
 
-app.listen(PORT, () => {
-    console.log("ANSCRIPT ONLINE");
+app.get("/verify", (req, res) => {
+    const { key } = req.query;
+    res.json({ valid: key === currentKey });
 });
+
+app.listen(3000, () => console.log("API online"));
