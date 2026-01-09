@@ -1,11 +1,7 @@
 const express = require("express");
+const path = require("path");
 const app = express();
 
-const PORT = process.env.PORT || 3000;
-
-// ======================
-// KEY SYSTEM
-// ======================
 let currentKey = "";
 let expireAt = 0;
 
@@ -15,23 +11,18 @@ function genKey() {
 
 function refreshKey() {
     currentKey = genKey();
-    expireAt = Date.now() + 60 * 60 * 1000; // 1 giờ
-    console.log("New key:", currentKey);
+    expireAt = Date.now() + 60 * 60 * 1000;
 }
 
 refreshKey();
 setInterval(refreshKey, 60 * 60 * 1000);
 
-// ======================
-// ROUTES
-// ======================
-
-// ROOT – để không bị Cannot GET /
+// TRANG WEB
 app.get("/", (req, res) => {
-    res.send("ANSCRIPT API ONLINE");
+    res.sendFile(path.join(__dirname, "index.html"));
 });
 
-// LẤY KEY (HTML dùng)
+// API GET KEY
 app.get("/key", (req, res) => {
     res.json({
         key: currentKey,
@@ -39,18 +30,10 @@ app.get("/key", (req, res) => {
     });
 });
 
-// ROBLOX VERIFY
+// API VERIFY
 app.get("/verify", (req, res) => {
     const { key } = req.query;
-
-    if (!key) {
-        return res.json({ valid: false, error: "missing key" });
-    }
-
-    const valid = key === currentKey;
-    res.json({ valid });
+    res.json({ valid: key === currentKey });
 });
 
-app.listen(PORT, () => {
-    console.log("API running on port", PORT);
-});
+app.listen(3000, () => console.log("ANSCRIPT API ONLINE"));
