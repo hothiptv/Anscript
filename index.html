@@ -1,49 +1,18 @@
 <!DOCTYPE html>
-<html lang="vi">
-<head>
-<meta charset="UTF-8">
-<title>ANSCRIPT KEY SYSTEM</title>
-<style>
-body{
-    background:#0e0e14;
-    color:#d6c8ff;
-    font-family:Arial;
-    text-align:center;
-    margin-top:80px;
-}
-button{
-    padding:12px 24px;
-    background:#7a5cff;
-    border:none;
-    color:white;
-    font-size:16px;
-    border-radius:8px;
-    cursor:pointer;
-}
-#key{
-    margin-top:20px;
-    font-size:20px;
-}
-</style>
-</head>
+<html>
 <body>
-
-<h1>ANSCRIPT GET KEY</h1>
-<p>Key sẽ đổi mỗi 1 giờ</p>
-
 <button onclick="getKey()">LẤY KEY</button>
-<div id="key"></div>
+<p id="k"></p>
 
 <script>
-function getKey(){
-    fetch("/getkey")
-    .then(r=>r.json())
-    .then(d=>{
-        document.getElementById("key").innerText = "KEY: " + d.key;
-        navigator.clipboard.writeText(d.key);
+function getKey() {
+  fetch("/key")
+    .then(r => r.json())
+    .then(d => {
+      document.getElementById("k").innerText = d.key;
+      navigator.clipboard.writeText(d.key);
     });
 }
 </script>
-
 </body>
 </html>
