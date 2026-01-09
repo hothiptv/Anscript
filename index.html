@@ -2,11 +2,11 @@
 <html lang="vi">
 <head>
 <meta charset="UTF-8">
-<title>ANSCRIPT | Get Key</title>
+<title>ANSCRIPT - Get Key</title>
 <style>
     body {
         background: #0e0e14;
-        color: #eee;
+        color: #eaeaff;
         font-family: Arial, sans-serif;
         display: flex;
         justify-content: center;
@@ -14,35 +14,41 @@
         height: 100vh;
     }
     .box {
-        background: #151522;
-        border-radius: 12px;
-        padding: 30px;
-        width: 320px;
+        background: #161622;
+        border: 1px solid #6f5cff;
+        padding: 25px;
+        border-radius: 10px;
         text-align: center;
-        box-shadow: 0 0 20px rgba(140,100,255,0.3);
+        width: 320px;
     }
-    button {
-        background: linear-gradient(135deg,#8c6cff,#5a3cff);
-        border: none;
-        color: white;
-        padding: 12px;
-        width: 100%;
-        border-radius: 8px;
-        font-size: 16px;
-        cursor: pointer;
-        margin-top: 15px;
+    h1 {
+        color: #9d8cff;
+        margin-bottom: 10px;
     }
-    .key {
-        margin-top: 15px;
-        background: #0e0e18;
+    #key {
+        background: #0e0e14;
         padding: 10px;
         border-radius: 6px;
-        font-family: monospace;
+        margin: 15px 0;
+        font-size: 18px;
+        letter-spacing: 2px;
         user-select: all;
     }
-    .time {
-        font-size: 13px;
-        opacity: 0.7;
+    button {
+        background: #6f5cff;
+        color: white;
+        border: none;
+        padding: 10px 15px;
+        border-radius: 6px;
+        cursor: pointer;
+        font-size: 15px;
+    }
+    button:hover {
+        background: #8577ff;
+    }
+    .note {
+        font-size: 12px;
+        color: #aaa;
         margin-top: 10px;
     }
 </style>
@@ -50,55 +56,36 @@
 <body>
 
 <div class="box">
-    <h2>ANSCRIPT KEY</h2>
-    <button onclick="generateKey()">TẠO KEY</button>
-    <div id="keyBox" class="key">Chưa tạo key</div>
-    <div id="timeBox" class="time"></div>
+    <h1>ANSCRIPT</h1>
+    <p>Key có hiệu lực trong <b>1 giờ</b></p>
+
+    <div id="key">Đang tải...</div>
+
+    <button onclick="copyKey()">📋 Copy Key</button>
+
+    <div class="note">
+        Dán key này vào UI trong Roblox
+    </div>
 </div>
 
 <script>
-function getHourSeed() {
-    return Math.floor(Date.now() / 3600000);
+let currentKey = "";
+
+fetch("/getkey")
+    .then(res => res.json())
+    .then(data => {
+        currentKey = data.key;
+        document.getElementById("key").innerText = currentKey;
+    })
+    .catch(() => {
+        document.getElementById("key").innerText = "Lỗi server";
+    });
+
+function copyKey() {
+    if (!currentKey) return;
+    navigator.clipboard.writeText(currentKey);
+    alert("Đã copy key: " + currentKey);
 }
-
-function hash(seed) {
-    let str = seed.toString();
-    let h = 0;
-    for (let i = 0; i < str.length; i++) {
-        h = (h << 5) - h + str.charCodeAt(i);
-        h |= 0;
-    }
-    return Math.abs(h).toString(36);
-}
-
-function generateKey() {
-    const hour = getHourSeed();
-    const key = "ans-" + hash(hour).substring(0, 10);
-
-    localStorage.setItem("anscript_key", key);
-    localStorage.setItem("anscript_hour", hour);
-
-    document.getElementById("keyBox").innerText = key;
-    updateTime(hour);
-}
-
-function updateTime(hour) {
-    const expire = (hour + 1) * 3600000;
-    const mins = Math.floor((expire - Date.now()) / 60000);
-    document.getElementById("timeBox").innerText =
-        "Key hết hạn sau " + mins + " phút";
-}
-
-// auto load nếu đã có
-(function(){
-    const savedKey = localStorage.getItem("anscript_key");
-    const savedHour = localStorage.getItem("anscript_hour");
-
-    if (savedKey && savedHour == getHourSeed()) {
-        document.getElementById("keyBox").innerText = savedKey;
-        updateTime(savedHour);
-    }
-})();
 </script>
 
 </body>
