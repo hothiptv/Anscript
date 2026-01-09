@@ -1,37 +1,30 @@
 const express = require("express");
 const app = express();
 
+let unlockExpire = 0;
+
 app.use(express.json());
 
-/* TRẢ TRANG WEB */
 app.get("/", (req, res) => {
   res.sendFile(__dirname + "/index.html");
 });
 
-/* API GET KEY */
-app.get("/getkey", (req, res) => {
-  const key =
-    "ANSCRIPT-" +
-    Math.random().toString(36).substring(2, 8).toUpperCase();
+app.get("/unlock", (req, res) => {
+  unlockExpire = Date.now() + 60 * 60 * 1000; // 1 giờ
 
   res.json({
     success: true,
-    key: key
+    expire: unlockExpire
   });
 });
 
-/* VERIFY KEY (ROBLOX) */
-app.post("/verify", (req, res) => {
-  const { key } = req.body;
-
-  if (key && key.startsWith("ANSCRIPT-")) {
-    return res.json({ success: true });
+app.get("/check", (req, res) => {
+  if (Date.now() < unlockExpire) {
+    res.json({ unlocked: true });
+  } else {
+    res.json({ unlocked: false });
   }
-
-  return res.json({ success: false });
 });
 
 const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => {
-  console.log("ANSCRIPT SERVER ONLINE");
-});
+app.listen(PORT, () => console.log("ANSCRIPT API ONLINE"));
