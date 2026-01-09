@@ -4,7 +4,7 @@ const app = express();
 let unlockExpire = 0;
 
 app.use(express.json());
-app.use(express.static("public")); // ⚠️ CỰC KỲ QUAN TRỌNG
+app.use(express.static("public")); // ← QUAN TRỌNG
 
 app.get("/unlock", (req, res) => {
   unlockExpire = Date.now() + 60 * 60 * 1000;
@@ -18,4 +18,6 @@ app.get("/check", (req, res) => {
 });
 
 const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => console.log("ANSCRIPT API ONLINE"));
+app.listen(PORT, () => {
+  console.log("ANSCRIPT API ONLINE");
+});
