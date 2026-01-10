@@ -1,0 +1,192 @@
+-- LocalScript: Anscript VN Console Pro
+local LogService = game:GetService("LogService")
+local TweenService = game:GetService("TweenService")
+local UserInputService = game:GetService("UserInputService")
+local RunService = game:GetService("RunService")
+
+local player = game.Players.LocalPlayer
+local pgui = player:WaitForChild("PlayerGui")
+
+-- 1. TẠO UI CHÍNH
+local screenGui = Instance.new("ScreenGui")
+screenGui.Name = "AnscriptConsole_Pro"
+screenGui.ResetOnSpawn = false
+screenGui.Parent = pgui
+
+-- Nút tròn (Floating Button)
+local mainBtn = Instance.new("TextButton")
+mainBtn.Name = "MainBtn"
+mainBtn.Size = UDim2.new(0, 65, 0, 65)
+mainBtn.Position = UDim2.new(0, 20, 0.4, 0)
+mainBtn.BackgroundColor3 = Color3.fromRGB(0, 170, 255)
+mainBtn.Text = "LOG"
+mainBtn.TextColor3 = Color3.new(1, 1, 1)
+mainBtn.Font = Enum.Font.GothamBold
+mainBtn.TextSize = 16
+mainBtn.Parent = screenGui
+mainBtn.ZIndex = 100
+
+local uiCornerBtn = Instance.new("UICorner")
+uiCornerBtn.CornerRadius = UDim.new(1, 0)
+uiCornerBtn.Parent = mainBtn
+
+local uiStroke = Instance.new("UIStroke")
+uiStroke.Thickness = 3
+uiStroke.Color = Color3.new(1, 1, 1)
+uiStroke.Parent = mainBtn
+
+-- 2. BẢNG CONSOLE LỚN
+local consoleFrame = Instance.new("Frame")
+consoleFrame.Name = "ConsoleFrame"
+consoleFrame.Size = UDim2.new(0.8, 0, 0.7, 0)
+consoleFrame.Position = UDim2.new(0.5, 0, 0.5, 0)
+consoleFrame.AnchorPoint = Vector2.new(0.5, 0.5)
+consoleFrame.BackgroundColor3 = Color3.fromRGB(15, 15, 15)
+consoleFrame.BorderSizePixel = 0
+consoleFrame.Visible = false
+consoleFrame.ClipsDescendants = true
+consoleFrame.Parent = screenGui
+
+local uiCornerF = Instance.new("UICorner")
+uiCornerF.CornerRadius = UDim.new(0, 15)
+uiCornerF.Parent = consoleFrame
+
+-- Tiêu đề
+local title = Instance.new("TextLabel")
+title.Size = UDim2.new(1, 0, 0, 40)
+title.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
+title.Text = " ANSCRIPT VN - CONSOLE"
+title.TextColor3 = Color3.new(1, 1, 1)
+title.Font = Enum.Font.GothamBold
+title.TextSize = 18
+title.TextXAlignment = Enum.TextXAlignment.Left
+title.Parent = consoleFrame
+Instance.new("UICorner", title).CornerRadius = UDim.new(0, 15)
+
+-- ScrollingFrame chứa Log
+local scroll = Instance.new("ScrollingFrame")
+scroll.Size = UDim2.new(1, -20, 1, -60)
+scroll.Position = UDim2.new(0, 10, 0, 50)
+scroll.BackgroundTransparency = 1
+scroll.CanvasSize = UDim2.new(0, 0, 0, 0)
+scroll.ScrollBarThickness = 6
+scroll.Parent = consoleFrame
+
+local uiList = Instance.new("UIListLayout")
+uiList.Parent = scroll
+uiList.Padding = UDim.new(0, 5)
+
+-- 3. HÀM HIỆN THÔNG BÁO (Notification)
+local function notify(msg, color)
+    local n = Instance.new("TextLabel")
+    n.Size = UDim2.new(0, 280, 0, 45)
+    n.Position = UDim2.new(1, 20, 0.8, 0)
+    n.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
+    n.TextColor3 = color or Color3.new(1,1,1)
+    n.Text = "  " .. msg
+    n.Font = Enum.Font.GothamMedium
+    n.TextSize = 14
+    n.TextXAlignment = Enum.TextXAlignment.Left
+    n.Parent = screenGui
+    Instance.new("UICorner", n).CornerRadius = UDim.new(0, 10)
+    Instance.new("UIStroke", n).Color = color or Color3.new(1,1,1)
+    
+    n:TweenPosition(UDim2.new(1, -300, 0.8, 0), "Out", "Back", 0.5)
+    task.delay(3, function()
+        n:TweenPosition(UDim2.new(1, 20, 0.8, 0), "In", "Quad", 0.5)
+        task.wait(0.5)
+        n:Destroy()
+    end)
+end
+
+-- 4. HÀM THÊM LOG VÀ XỬ LÝ NHẤN GIỮ
+local function addLog(message, color)
+    local btn = Instance.new("TextButton")
+    btn.Size = UDim2.new(1, 0, 0, 35)
+    btn.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
+    btn.BackgroundTransparency = 0.95
+    btn.Text = "  " .. message
+    btn.TextColor3 = color
+    btn.Font = Enum.Font.Code
+    btn.TextSize = 14
+    btn.TextXAlignment = Enum.TextXAlignment.Left
+    btn.AutoButtonColor = true
+    btn.Parent = scroll
+    
+    Instance.new("UICorner", btn).CornerRadius = UDim.new(0, 5)
+
+    -- Xử lý nhấn giữ (Long Press) để copy
+    local holdTime = 0
+    local isHolding = false
+    
+    btn.InputBegan:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+            isHolding = true
+            holdTime = tick()
+        end
+    end)
+
+    btn.InputEnded:Connect(function(input)
+        if isHolding then
+            isHolding = false
+            if tick() - holdTime >= 1 then -- Nếu nhấn giữ trên 1 giây
+                if setclipboard then
+                    setclipboard(message)
+                    notify("Đã copy dòng log!", Color3.new(1, 1, 1))
+                end
+            end
+        end
+    end)
+
+    scroll.CanvasSize = UDim2.new(0, 0, 0, uiList.AbsoluteContentSize.Y)
+end
+
+-- 5. HIỆU ỨNG MỞ/ĐÓNG BẢNG
+local isOpen = false
+mainBtn.MouseButton1Click:Connect(function()
+    isOpen = not isOpen
+    if isOpen then
+        consoleFrame.Visible = true
+        consoleFrame.Size = UDim2.new(0,0,0,0)
+        consoleFrame:TweenSize(UDim2.new(0.8, 0, 0.7, 0), "Out", "Back", 0.5)
+    else
+        consoleFrame:TweenSize(UDim2.new(0,0,0,0), "In", "Back", 0.3)
+        task.wait(0.3)
+        consoleFrame.Visible = false
+    end
+end)
+
+-- 6. KÉO THẢ NÚT TRÒN
+local dragging, dragStart, startPos
+mainBtn.InputBegan:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+        dragging = true
+        dragStart = input.Position
+        startPos = mainBtn.Position
+    end
+end)
+UserInputService.InputChanged:Connect(function(input)
+    if dragging and (input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch) then
+        local delta = input.Position - dragStart
+        mainBtn.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
+    end
+end)
+UserInputService.InputEnded:Connect(function(input)
+    dragging = false
+end)
+
+-- KHỞI CHẠY
+notify("console by Anscript VN", Color3.fromRGB(0, 255, 127))
+
+LogService.MessageOut:Connect(function(message, messageType)
+    local color = Color3.new(1, 1, 1)
+    if messageType == Enum.MessageType.MessageError then
+        color = Color3.fromRGB(255, 50, 50)
+        notify("Phát hiện lỗi! Đã tự copy", Color3.fromRGB(255, 50, 50))
+        if setclipboard then setclipboard(message) end
+    elseif messageType == Enum.MessageType.MessageWarning then
+        color = Color3.fromRGB(255, 255, 100)
+    end
+    addLog(message, color)
+end)
+ 
