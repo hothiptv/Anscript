@@ -1,0 +1,332 @@
+local Rayfield = loadstring(game:HttpGet('https://sirius.menu/rayfield'))()
+
+local Window = Rayfield:CreateWindow({
+   Name = "ANSCRIPT PLAYER | V0.2",
+   LoadingTitle = "Anscript Loading...",
+   LoadingSubtitle = "by Anscript VN",
+   ConfigurationSaving = { Enabled = true, FolderName = "Anscript_Data", FileName = "Config" },
+   KeySystem = false
+})
+
+-- BIẾN HỆ THỐNG
+local Players = game:GetService("Players")
+local RunService = game:GetService("RunService")
+local LP = Players.LocalPlayer
+local SelectedPlayer = nil
+
+-- BIẾN LOCAL PLAYER
+local SpeedValue = 16
+local JumpPowerValue = 50
+local GravityValue = 196.2
+local NormalGravity = 196.2
+local InfiniteJump = false
+local NoClip = false
+
+-- BIẾN ESP & NAME
+_G.ESP_Enabled = false
+_G.ESP_Color = Color3.fromRGB(255, 0, 0)
+_G.DistanceUnit = "M" -- "M" hoặc "KM"
+_G.CustomName = "Anscript Player"
+_G.NameTagEnabled = false
+_G.FontEnabled = false
+
+-- HÀM TÌM NGƯỜI CHƠI
+local function GetPlayer(String)
+    for _, v in pairs(Players:GetPlayers()) do
+        if v.Name:lower():sub(1, #String) == String:lower() or v.DisplayName:lower():sub(1, #String) == String:lower() then
+            return v
+        end
+    end
+    return nil
+end
+
+-- ================================================
+-- TAB LOCAL PLAYER
+-- ================================================
+local LocalTab = Window:CreateTab("LOCAL PLAYER", "user")
+
+LocalTab:CreateSlider({
+   Name = "WalkSpeed (Tốc độ)",
+   Range = {16, 500}, Increment = 1, Suffix = "Speed", CurrentValue = 16,
+   Callback = function(Value) SpeedValue = Value end,
+})
+
+LocalTab:CreateToggle({
+   Name = "Bật WalkSpeed",
+   CurrentValue = false,
+   Callback = function(Value)
+        _G.SpeedEnabled = Value
+        task.spawn(function()
+            while _G.SpeedEnabled do
+                if LP.Character and LP.Character:FindFirstChild("Humanoid") then
+                    LP.Character.Humanoid.WalkSpeed = SpeedValue
+                end
+                task.wait(0.1)
+            end
+            if LP.Character then LP.Character.Humanoid.WalkSpeed = 16 end
+        end)
+   end,
+})
+
+LocalTab:CreateSlider({
+   Name = "JumpPower (Nhảy cao)",
+   Range = {50, 500}, Increment = 1, Suffix = "Power", CurrentValue = 50,
+   Callback = function(Value) JumpPowerValue = Value end,
+})
+
+LocalTab:CreateToggle({
+   Name = "Bật Super Jump",
+   CurrentValue = false,
+   Callback = function(Value)
+        _G.JumpEnabled = Value
+        task.spawn(function()
+            while _G.JumpEnabled do
+                if LP.Character and LP.Character:FindFirstChild("Humanoid") then
+                    LP.Character.Humanoid.UseJumpPower = true
+                    LP.Character.Humanoid.JumpPower = JumpPowerValue
+                end
+                task.wait(0.1)
+            end
+            if LP.Character then LP.Character.Humanoid.JumpPower = 50 end
+        end)
+   end,
+})
+
+LocalTab:CreateSlider({
+   Name = "Gravity (Trọng lực)",
+   Range = {0, 196}, Increment = 1, Suffix = "G", CurrentValue = 196,
+   Callback = function(Value) GravityValue = Value end,
+})
+
+LocalTab:CreateToggle({
+   Name = "Bật Gravity",
+   CurrentValue = false,
+   Callback = function(Value)
+       _G.GravEnabled = Value
+       if not Value then workspace.Gravity = NormalGravity end
+       task.spawn(function()
+           while _G.GravEnabled do
+               workspace.Gravity = GravityValue
+               task.wait(0.1)
+           end
+       end)
+   end,
+})
+
+LocalTab:CreateToggle({
+   Name = "Noclip",
+   CurrentValue = false,
+   Callback = function(Value) NoClip = Value end,
+})
+
+RunService.Stepped:Connect(function()
+    if NoClip and LP.Character then
+        for _, v in pairs(LP.Character:GetDescendants()) do
+            if v:IsA("BasePart") then v.CanCollide = false end
+        end
+    end
+end)
+
+-- ================================================
+-- TAB NAME (TÙY CHỈNH THẺ TÊN)
+-- ================================================
+local NameTab = Window:CreateTab("NAME", "badge-check")
+
+NameTab:CreateInput({
+   Name = "Nhập tên bạn muốn",
+   PlaceholderText = "Tên mới...",
+   Callback = function(Text) _G.CustomName = Text end,
+})
+
+NameTab:CreateToggle({
+   Name = "Bật Thẻ Tên (Trên đầu)",
+   CurrentValue = false,
+   Callback = function(Value)
+       _G.NameTagEnabled = Value
+       if Value then
+           task.spawn(function()
+               local head = LP.Character:WaitForChild("Head")
+               local bill = Instance.new("BillboardGui", head)
+               bill.Name = "MyCustomTag"
+               bill.Size = UDim2.new(0, 200, 0, 50)
+               bill.Adornee = head
+               bill.AlwaysOnTop = true
+               bill.ExtentsOffset = Vector3.new(0, 3, 0)
+
+               local label = Instance.new("TextLabel", bill)
+               label.Size = UDim2.new(1, 0, 1, 0)
+               label.BackgroundTransparency = 1
+               label.TextStrokeTransparency = 0
+               label.TextSize = 18
+
+               while _G.NameTagEnabled do
+                   label.Text = _G.CustomName
+                   label.TextColor3 = _G.ESP_Color -- Dùng chung màu ESP cho đồng bộ
+                   label.Font = _G.FontEnabled and Enum.Font.SpecialElite or Enum.Font.SourceSansBold
+                   task.wait(0.1)
+               end
+               bill:Destroy()
+           end)
+       end
+   end,
+})
+
+NameTab:CreateToggle({
+   Name = "Font đẹp",
+   CurrentValue = false,
+   Callback = function(Value) _G.FontEnabled = Value end,
+})
+
+-- ================================================
+-- TAB VISUALS / ESP
+-- ================================================
+local ESPTab = Window:CreateTab("VISUALS / ESP", "eye")
+
+ESPTab:CreateColorPicker({
+    Name = "Màu ESP & Name",
+    Color = Color3.fromRGB(255, 0, 0),
+    Callback = function(Value) _G.ESP_Color = Value end
+})
+
+ESPTab:CreateButton({Name = "Chế độ: Mét (M)", Callback = function() _G.DistanceUnit = "M" end})
+ESPTab:CreateButton({Name = "Chế độ: Kilômét (KM)", Callback = function() _G.DistanceUnit = "KM" end})
+
+local function CreateESP(plr)
+    task.spawn(function()
+        local highlight = Instance.new("Highlight")
+        highlight.Name = "Anscript_ESP"
+        highlight.FillTransparency = 0.5
+        
+        local bill = Instance.new("BillboardGui")
+        bill.Name = "Anscript_Tag"
+        bill.Size = UDim2.new(0, 150, 0, 60)
+        bill.AlwaysOnTop = true
+        bill.ExtentsOffset = Vector3.new(0, 3, 0)
+        
+        local label = Instance.new("TextLabel", bill)
+        label.Size = UDim2.new(1, 0, 1, 0)
+        label.BackgroundTransparency = 1
+        label.TextStrokeTransparency = 0
+        label.TextSize = 14
+
+        while plr and plr.Parent and _G.ESP_Enabled do
+            if plr.Character and plr.Character:FindFirstChild("HumanoidRootPart") and plr ~= LP then
+                highlight.Parent = plr.Character
+                highlight.OutlineColor = _G.ESP_Color
+                highlight.FillColor = _G.ESP_Color
+                
+                bill.Parent = plr.Character:FindFirstChild("Head")
+                bill.Adornee = plr.Character:FindFirstChild("Head")
+                
+                local hp = math.floor(plr.Character:FindFirstChild("Humanoid").Health)
+                local dist = (LP.Character.HumanoidRootPart.Position - plr.Character.HumanoidRootPart.Position).Magnitude
+                
+                local displayDist = _G.DistanceUnit == "M" and math.floor(dist).."M" or string.format("%.2f", dist/1000).."KM"
+                
+                label.Text = string.format("%s\nHP: %d | %s", plr.DisplayName, hp, displayDist)
+                label.TextColor3 = _G.ESP_Color
+            else
+                highlight.Parent = nil
+                bill.Parent = nil
+            end
+            task.wait(0.1)
+        end
+        highlight:Destroy()
+        bill:Destroy()
+    end)
+end
+
+ESPTab:CreateToggle({
+   Name = "Bật ESP",
+   CurrentValue = false,
+   Callback = function(Value)
+       _G.ESP_Enabled = Value
+       if Value then
+           for _, p in pairs(Players:GetPlayers()) do
+               if p ~= LP then CreateESP(p) end
+           end
+       end
+   end,
+})
+
+-- ================================================
+-- TAB PLAYER SERVER
+-- ================================================
+local ServerTab = Window:CreateTab("PLAYER SERVER", "users")
+
+ServerTab:CreateInput({
+   Name = "Nhập tên người chơi",
+   PlaceholderText = "Ví dụ: ans",
+   Callback = function(Text) SelectedPlayer = GetPlayer(Text) end,
+})
+
+ServerTab:CreateButton({
+   Name = "Kiểm tra Player",
+   Callback = function()
+      if SelectedPlayer then
+          Rayfield:Notify({Title = "OK", Content = "Đang chọn: " .. SelectedPlayer.Name, Duration = 2})
+      else
+          Rayfield:Notify({Title = "Lỗi", Content = "Không tìm thấy!", Duration = 2})
+      end
+   end,
+})
+
+ServerTab:CreateToggle({
+   Name = "Player Cam",
+   CurrentValue = false,
+   Callback = function(Value)
+      if Value and SelectedPlayer and SelectedPlayer.Character then
+          workspace.CurrentCamera.CameraSubject = SelectedPlayer.Character:FindFirstChildOfClass("Humanoid")
+      else
+          workspace.CurrentCamera.CameraSubject = LP.Character:FindFirstChildOfClass("Humanoid")
+      end
+   end,
+})
+
+ServerTab:CreateButton({
+   Name = "Teleport tới Player",
+   Callback = function()
+      if SelectedPlayer and SelectedPlayer.Character then
+          LP.Character.HumanoidRootPart.CFrame = SelectedPlayer.Character.HumanoidRootPart.CFrame
+      end
+   end,
+})
+
+-- FOLLOW SYSTEM
+local FollowActive = false
+local FollowSpeed = 16
+local FollowMethod = "Speed"
+
+ServerTab:CreateInput({
+   Name = "Tốc độ di chuyển tới",
+   Callback = function(Text) FollowSpeed = tonumber(Text) or 16 end,
+})
+
+ServerTab:CreateToggle({
+   Name = "Chế độ Follow",
+   CurrentValue = false,
+   Callback = function(Value)
+       FollowActive = Value
+       task.spawn(function()
+           while FollowActive do
+               if SelectedPlayer and SelectedPlayer.Character and LP.Character then
+                   local root = LP.Character.HumanoidRootPart
+                   local targetRoot = SelectedPlayer.Character.HumanoidRootPart
+                   if FollowMethod == "Speed" then
+                       LP.Character.Humanoid:MoveTo(targetRoot.Position)
+                       LP.Character.Humanoid.WalkSpeed = FollowSpeed
+                   else
+                       local dir = (targetRoot.Position - root.Position).Unit
+                       root.CFrame = root.CFrame + (dir * (FollowSpeed/20))
+                   end
+               end
+               task.wait()
+           end
+       end)
+   end,
+})
+
+ServerTab:CreateButton({Name = "Chế độ: Speed", Callback = function() FollowMethod = "Speed" end})
+ServerTab:CreateButton({Name = "Chế độ: TPWalk", Callback = function() FollowMethod = "TPWalk" end})
+
+Rayfield:Notify({Title = "ANSCRIPT", Content = "Hệ thống đã sẵn sàng!", Duration = 3})
