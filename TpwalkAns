@@ -1,0 +1,163 @@
+local UIS = game:GetService("UserInputService")
+local RunService = game:GetService("RunService")
+local Player = game.Players.LocalPlayer
+local Character = Player.Character or Player.CharacterAdded:Wait()
+
+-- BIẾN CẤU HÌNH
+local SpeedValue = 0.4 -- Mặc định là 2 theo ý bạn
+local IsActive = false
+local Mode = "TPWalk" -- Mặc định là TPWalk
+local IsLocked = false -- Trạng thái khóa vị trí
+local HoldTime = 0
+local IsHolding = false
+
+-- TẠO UI
+local ScreenGui = Instance.new("ScreenGui", game.CoreGui)
+ScreenGui.Name = "Anscript_Floating_V2"
+
+-- NÚT TRÒN TO
+local MainBtn = Instance.new("TextButton", ScreenGui)
+MainBtn.Size = UDim2.new(0, 65, 0, 65)
+MainBtn.Position = UDim2.new(0.1, 0, 0.5, 0)
+MainBtn.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
+MainBtn.Text = "OFF"
+MainBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+MainBtn.Font = Enum.Font.GothamBold
+MainBtn.TextSize = 16
+MainBtn.ZIndex = 10
+
+local UICorner = Instance.new("UICorner", MainBtn)
+UICorner.CornerRadius = UDim.new(1, 0)
+local UIStroke = Instance.new("UIStroke", MainBtn)
+UIStroke.Thickness = 3
+UIStroke.Color = Color3.fromRGB(255, 50, 50)
+
+-- MENU SETUP
+local InputFrame = Instance.new("Frame", ScreenGui)
+InputFrame.Size = UDim2.new(0, 220, 0, 200)
+InputFrame.Position = UDim2.new(0.5, -110, 0.5, -100)
+InputFrame.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
+InputFrame.Visible = false
+Instance.new("UICorner", InputFrame)
+
+local SpeedInput = Instance.new("TextBox", InputFrame)
+SpeedInput.Size = UDim2.new(0, 180, 0, 35)
+SpeedInput.Position = UDim2.new(0.5, -90, 0.1, 0)
+SpeedInput.PlaceholderText = "Nhập tốc độ (VD: 2)"
+SpeedInput.Text = "2"
+SpeedInput.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
+SpeedInput.TextColor3 = Color3.new(1, 1, 1)
+Instance.new("UICorner", SpeedInput)
+
+local ModeBtn = Instance.new("TextButton", InputFrame)
+ModeBtn.Size = UDim2.new(0, 180, 0, 35)
+ModeBtn.Position = UDim2.new(0.5, -90, 0.32, 0)
+ModeBtn.Text = "Chế độ: TPWalk"
+ModeBtn.BackgroundColor3 = Color3.fromRGB(0, 120, 215)
+ModeBtn.TextColor3 = Color3.new(1, 1, 1)
+Instance.new("UICorner", ModeBtn)
+
+local LockBtn = Instance.new("TextButton", InputFrame)
+LockBtn.Size = UDim2.new(0, 180, 0, 35)
+LockBtn.Position = UDim2.new(0.5, -90, 0.54, 0)
+LockBtn.Text = "Khóa vị trí: Tắt"
+LockBtn.BackgroundColor3 = Color3.fromRGB(150, 150, 150)
+LockBtn.TextColor3 = Color3.new(1, 1, 1)
+Instance.new("UICorner", LockBtn)
+
+local ConfirmBtn = Instance.new("TextButton", InputFrame)
+ConfirmBtn.Size = UDim2.new(0, 180, 0, 35)
+ConfirmBtn.Position = UDim2.new(0.5, -90, 0.78, 0)
+ConfirmBtn.Text = "XÁC NHẬN"
+ConfirmBtn.BackgroundColor3 = Color3.fromRGB(0, 180, 80)
+ConfirmBtn.TextColor3 = Color3.new(1, 1, 1)
+Instance.new("UICorner", ConfirmBtn)
+
+-- KÉO NÚT (DRAG)
+local dragging, dragStart, startPos
+MainBtn.InputBegan:Connect(function(input)
+    if (input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch) then
+        IsHolding = true
+        HoldTime = tick()
+        if not IsLocked then -- Nếu không khóa thì mới cho phép kéo
+            dragging = true
+            dragStart = input.Position
+            startPos = MainBtn.Position
+        end
+    end
+end)
+
+UIS.InputChanged:Connect(function(input)
+    if dragging and (input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch) then
+        local delta = input.Position - dragStart
+        MainBtn.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
+    end
+end)
+
+UIS.InputEnded:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+        dragging = false
+        IsHolding = false
+    end
+end)
+
+-- XỬ LÝ TỐC ĐỘ (POSTSIMULATION GIÚP MƯỢT HƠN)
+RunService.PostSimulation:Connect(function()
+    if IsActive then
+        local char = Player.Character
+        local hum = char and char:FindFirstChild("Humanoid")
+        local hrp = char and char:FindFirstChild("HumanoidRootPart")
+        
+        if hum and hrp and hum.MoveDirection.Magnitude > 0 then
+            if Mode == "TPWalk" then
+                hrp.CFrame = hrp.CFrame + (hum.MoveDirection * SpeedValue)
+            elseif Mode == "Speed" then
+                hum.WalkSpeed = SpeedValue * 16 -- Nhân với tốc độ gốc nếu dùng mode Speed
+            end
+        end
+    end
+end)
+
+-- BẬT / TẮT KHI ẤN
+MainBtn.MouseButton1Click:Connect(function()
+    if tick() - HoldTime < 0.4 then
+        IsActive = not IsActive
+        MainBtn.Text = IsActive and "ON" or "OFF"
+        UIStroke.Color = IsActive and Color3.fromRGB(50, 255, 50) or Color3.fromRGB(255, 50, 50)
+        
+        if not IsActive and Character:FindFirstChild("Humanoid") then
+            Character.Humanoid.WalkSpeed = 16
+        end
+    end
+end)
+
+-- GIỮ 2 GIÂY MỞ SETUP
+RunService.Heartbeat:Connect(function()
+    if IsHolding and tick() - HoldTime > 2 then
+        IsHolding = false
+        InputFrame.Visible = true
+    end
+end)
+
+-- ĐỔI CHẾ ĐỘ
+ModeBtn.MouseButton1Click:Connect(function()
+    Mode = (Mode == "Speed") and "TPWalk" or "Speed"
+    ModeBtn.Text = "Chế độ: " .. Mode
+end)
+
+-- KHÓA NÚT
+LockBtn.MouseButton1Click:Connect(function()
+    IsLocked = not IsLocked
+    LockBtn.Text = IsLocked and "Khóa vị trí: Bật" or "Khóa vị trí: Tắt"
+    LockBtn.BackgroundColor3 = IsLocked and Color3.fromRGB(200, 50, 50) or Color3.fromRGB(150, 150, 150)
+end)
+
+-- XÁC NHẬN
+ConfirmBtn.MouseButton1Click:Connect(function()
+    local val = tonumber(SpeedInput.Text)
+    if val then SpeedValue = val end
+    InputFrame.Visible = false
+end)
+
+-- RESET KHI CHẾT
+Player.CharacterAdded:Connect(function(newChar) Character = newChar end)
