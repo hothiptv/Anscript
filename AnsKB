@@ -1,0 +1,213 @@
+local VirtualInputManager = game:GetService("VirtualInputManager")
+local UserInputService = game:GetService("UserInputService")
+local HttpService = game:GetService("HttpService")
+local CoreGui = game:GetService("CoreGui")
+
+local FILENAME = "AnsKeyboard_Data.json"
+local ScreenGui = Instance.new("ScreenGui", CoreGui)
+ScreenGui.Name = "AnsKeyboard"
+ScreenGui.ResetOnSpawn = false
+
+local GlobalLocked = false
+local CurrentButtons = {} -- Chứa bảng dữ liệu: {Object, KeyCode}
+local GlobalKeySize = 60
+
+-- [[ HÀM HỆ THỐNG ]] --
+local function SaveData(allData) writefile(FILENAME, HttpService:JSONEncode(allData)) end
+local function LoadData() return isfile(FILENAME) and HttpService:JSONDecode(readfile(FILENAME)) or {} end
+
+local function MakeDraggable(UIElement)
+    local dragging, dragStart, startPos
+    UIElement.InputBegan:Connect(function(input)
+        if not GlobalLocked and (input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch) then
+            dragging = true; dragStart = input.Position; startPos = UIElement.Position
+        end
+    end)
+    UserInputService.InputChanged:Connect(function(input)
+        if dragging and (input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch) then
+            local delta = input.Position - dragStart
+            UIElement.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
+        end
+    end)
+    UIElement.InputEnded:Connect(function(input) if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then dragging = false end end)
+end
+
+-- [[ GIAO DIỆN MENU CHÍNH ]] --
+local MainBtn = Instance.new("TextButton", ScreenGui)
+MainBtn.Size = UDim2.new(0, 70, 0, 70); MainBtn.Position = UDim2.new(0.1, 0, 0.5, 0)
+MainBtn.BackgroundColor3 = Color3.fromRGB(255, 80, 0); MainBtn.Text = "Ans\nKB"; MainBtn.TextColor3 = Color3.new(1,1,1)
+Instance.new("UICorner", MainBtn).CornerRadius = UDim.new(1, 0); MakeDraggable(MainBtn)
+
+local MenuFrame = Instance.new("Frame", ScreenGui)
+MenuFrame.Size = UDim2.new(0, 240, 0, 360); MenuFrame.Position = UDim2.new(0.5, -120, 0.5, -180)
+MenuFrame.BackgroundColor3 = Color3.fromRGB(25, 25, 25); MenuFrame.Visible = false; Instance.new("UICorner", MenuFrame)
+
+local CreateBtn = Instance.new("TextButton", MenuFrame)
+CreateBtn.Size = UDim2.new(0.9, 0, 0, 40); CreateBtn.Position = UDim2.new(0.05, 0, 0.05, 0); CreateBtn.Text = "TẠO PHÍM MỚI"; CreateBtn.BackgroundColor3 = Color3.fromRGB(0, 140, 0)
+
+local KeyListMenuBtn = Instance.new("TextButton", MenuFrame)
+KeyListMenuBtn.Size = UDim2.new(0.9, 0, 0, 40); KeyListMenuBtn.Position = UDim2.new(0.05, 0, 0.18, 0); KeyListMenuBtn.Text = "DANH SÁCH PHÍM"; KeyListMenuBtn.BackgroundColor3 = Color3.fromRGB(100, 0, 150)
+
+local SlotMenuBtn = Instance.new("TextButton", MenuFrame)
+SlotMenuBtn.Size = UDim2.new(0.9, 0, 0, 40); SlotMenuBtn.Position = UDim2.new(0.05, 0, 0.31, 0); SlotMenuBtn.Text = "QUẢN LÝ SLOT"; SlotMenuBtn.BackgroundColor3 = Color3.fromRGB(0, 80, 180)
+
+local HelpBtn = Instance.new("TextButton", MenuFrame)
+HelpBtn.Size = UDim2.new(0.9, 0, 0, 40); HelpBtn.Position = UDim2.new(0.05, 0, 0.44, 0); HelpBtn.Text = "CÁCH SỬ DỤNG (HELP)"; HelpBtn.BackgroundColor3 = Color3.fromRGB(200, 150, 0)
+
+local SizeInputGlobal = Instance.new("TextBox", MenuFrame)
+SizeInputGlobal.Size = UDim2.new(0.9, 0, 0, 40); SizeInputGlobal.Position = UDim2.new(0.05, 0, 0.58, 0); SizeInputGlobal.PlaceholderText = "Size Phím (Tất cả)..."; SizeInputGlobal.BackgroundColor3 = Color3.fromRGB(45, 45, 45); SizeInputGlobal.TextColor3 = Color3.new(1,1,1)
+
+local LockBtn = Instance.new("TextButton", MenuFrame)
+LockBtn.Size = UDim2.new(0.9, 0, 0, 40); LockBtn.Position = UDim2.new(0.05, 0, 0.71, 0); LockBtn.Text = "KHÓA KÉO: OFF"; LockBtn.BackgroundColor3 = Color3.fromRGB(180, 0, 0)
+
+local CloseMainMenu = Instance.new("TextButton", MenuFrame)
+CloseMainMenu.Size = UDim2.new(0.9, 0, 0, 35); CloseMainMenu.Position = UDim2.new(0.05, 0, 0.88, 0); CloseMainMenu.Text = "ĐÓNG MENU"; CloseMainMenu.BackgroundColor3 = Color3.fromRGB(70, 70, 70); CloseMainMenu.TextColor3 = Color3.new(1,1,1)
+
+-- [[ GIAO DIỆN HELP ]] --
+local HelpFrame = Instance.new("Frame", ScreenGui)
+HelpFrame.Size = UDim2.new(0, 300, 0, 350); HelpFrame.Position = UDim2.new(0.5, -150, 0.5, -175); HelpFrame.BackgroundColor3 = Color3.fromRGB(30, 30, 30); HelpFrame.Visible = false; Instance.new("UICorner", HelpFrame)
+
+local HelpText = Instance.new("TextLabel", HelpFrame)
+HelpText.Size = UDim2.new(0.9, 0, 0.8, 0); HelpText.Position = UDim2.new(0.05, 0, 0.05, 0); HelpText.BackgroundTransparency = 1; HelpText.TextColor3 = Color3.new(1,1,1); HelpText.TextSize = 14; HelpText.TextXAlignment = Enum.TextXAlignment.Left; HelpText.TextYAlignment = Enum.TextYAlignment.Top; HelpText.RichText = true; HelpText.TextWrapped = true
+HelpText.Text = "<b>HƯỚNG DẪN ANS KEYBOARD:</b>\n\n1. <b>Tạo phím:</b> Nhấn 'TẠO PHÍM MỚI'.\n2. <b>Cài phím:</b> Giữ phím 2 giây để nhập ký tự (W, A, S, D, F9...).\n3. <b>Di chuyển:</b> Kéo phím đến vị trí mong muốn.\n4. <b>Khóa:</b> Bật KHÓA KÉO để không bị xê dịch khi chơi.\n5. <b>Slot:</b> Lưu lại bố cục phím và kích cỡ để dùng lần sau.\n6. <b>Danh sách:</b> Sửa nhanh ký tự hoặc Size của từng phím.\n7. <b>Xóa phím:</b> Vào Danh sách phím để xóa."
+
+local CloseHelp = Instance.new("TextButton", HelpFrame)
+CloseHelp.Size = UDim2.new(0.9, 0, 0, 35); CloseHelp.Position = UDim2.new(0.05, 0, 0.88, 0); CloseHelp.Text = "ĐÓNG HƯỚNG DẪN"; CloseHelp.BackgroundColor3 = Color3.fromRGB(60,60,60); CloseHelp.TextColor3 = Color3.new(1,1,1)
+
+-- [[ GIAO DIỆN QUẢN LÝ PHÍM ]] --
+local KeyListFrame = Instance.new("Frame", ScreenGui)
+KeyListFrame.Size = UDim2.new(0, 300, 0, 400); KeyListFrame.Position = UDim2.new(0.5, -150, 0.5, -200); KeyListFrame.BackgroundColor3 = Color3.fromRGB(20, 20, 20); KeyListFrame.Visible = false; Instance.new("UICorner", KeyListFrame)
+
+local KeyScroll = Instance.new("ScrollingFrame", KeyListFrame)
+KeyScroll.Size = UDim2.new(0.9, 0, 0, 320); KeyScroll.Position = UDim2.new(0.05, 0, 0.05, 0); KeyScroll.BackgroundColor3 = Color3.fromRGB(30, 30, 30); KeyScroll.CanvasSize = UDim2.new(0,0,0,0)
+Instance.new("UIListLayout", KeyScroll).Padding = UDim.new(0, 5)
+
+local CloseKeyList = Instance.new("TextButton", KeyListFrame)
+CloseKeyList.Size = UDim2.new(0.9, 0, 0, 35); CloseKeyList.Position = UDim2.new(0.05, 0, 0.88, 0); CloseKeyList.Text = "ĐÓNG DANH SÁCH"; CloseKeyList.BackgroundColor3 = Color3.fromRGB(60,60,60); CloseKeyList.TextColor3 = Color3.new(1,1,1)
+
+-- [[ GIAO DIỆN SLOT ]] --
+local SlotFrame = Instance.new("Frame", ScreenGui)
+SlotFrame.Size = UDim2.new(0, 280, 0, 380); SlotFrame.Position = UDim2.new(0.5, -140, 0.5, -190); SlotFrame.BackgroundColor3 = Color3.fromRGB(20, 20, 20); SlotFrame.Visible = false; Instance.new("UICorner", SlotFrame)
+
+local SlotNameInput = Instance.new("TextBox", SlotFrame)
+SlotNameInput.Size = UDim2.new(0.9, 0, 0, 35); SlotNameInput.Position = UDim2.new(0.05, 0, 0.05, 0); SlotNameInput.PlaceholderText = "Tên Slot..."; SlotNameInput.BackgroundColor3 = Color3.fromRGB(40,40,40); SlotNameInput.TextColor3 = Color3.new(1,1,1)
+
+local SaveSlotBtn = Instance.new("TextButton", SlotFrame)
+SaveSlotBtn.Size = UDim2.new(0.42, 0, 0, 35); SaveSlotBtn.Position = UDim2.new(0.05, 0, 0.16, 0); SaveSlotBtn.Text = "LƯU SLOT"; SaveSlotBtn.BackgroundColor3 = Color3.fromRGB(0, 150, 0); SaveSlotBtn.TextColor3 = Color3.new(1,1,1)
+
+local LoadSlotBtn = Instance.new("TextButton", SlotFrame)
+LoadSlotBtn.Size = UDim2.new(0.42, 0, 0, 35); LoadSlotBtn.Position = UDim2.new(0.53, 0, 0.16, 0); LoadSlotBtn.Text = "TẢI SLOT"; LoadSlotBtn.BackgroundColor3 = Color3.fromRGB(0, 100, 200); LoadSlotBtn.TextColor3 = Color3.new(1,1,1)
+
+local SlotScroll = Instance.new("ScrollingFrame", SlotFrame)
+SlotScroll.Size = UDim2.new(0.9, 0, 0, 160); SlotScroll.Position = UDim2.new(0.05, 0, 0.3, 0); SlotScroll.BackgroundColor3 = Color3.fromRGB(30, 30, 30); Instance.new("UIListLayout", SlotScroll).Padding = UDim.new(0, 5)
+
+local CloseSlotMenu = Instance.new("TextButton", SlotFrame)
+CloseSlotMenu.Size = UDim2.new(0.9, 0, 0, 35); CloseSlotMenu.Position = UDim2.new(0.05, 0, 0.88, 0); CloseSlotMenu.Text = "ĐÓNG QUẢN LÝ SLOT"; CloseSlotMenu.BackgroundColor3 = Color3.fromRGB(60,60,60); CloseSlotMenu.TextColor3 = Color3.new(1,1,1)
+
+-- [[ LOGIC CHỨC NĂNG ]] --
+
+local function UpdateKeyList()
+    for _, v in pairs(KeyScroll:GetChildren()) do if v:IsA("Frame") then v:Destroy() end end
+    for _, item in pairs(CurrentButtons) do
+        local btnObj = item.Btn
+        local f = Instance.new("Frame", KeyScroll); f.Size = UDim2.new(1, -10, 0, 50); f.BackgroundColor3 = Color3.fromRGB(45, 45, 45)
+        
+        -- Sửa ký tự
+        local l = Instance.new("TextBox", f); l.Size = UDim2.new(0.2, 0, 1, 0); l.Text = btnObj.Text; l.TextColor3 = Color3.new(1,1,1); l.BackgroundTransparency = 1
+        l.FocusLost:Connect(function() 
+            local k = l.Text:upper()
+            btnObj.Text = k
+            item.Code = Enum.KeyCode[k] or item.Code -- CẬP NHẬT MÃ PHÍM THỰC TẾ
+        end)
+        
+        -- Sửa Size
+        local si = Instance.new("TextBox", f); si.Size = UDim2.new(0.4, 0, 1, 0); si.Position = UDim2.new(0.25, 0, 0, 0); si.Text = tostring(btnObj.Size.X.Offset); si.PlaceholderText = "Size"; si.BackgroundColor3 = Color3.fromRGB(60,60,60); si.TextColor3 = Color3.new(1,1,1)
+        si.FocusLost:Connect(function() local v = tonumber(si.Text) if v then btnObj.Size = UDim2.new(0, v, 0, v) end end)
+        
+        local d = Instance.new("TextButton", f); d.Size = UDim2.new(0.25, 0, 0.8, 0); d.Position = UDim2.new(0.7, 0, 0.1, 0); d.Text = "XÓA"; d.BackgroundColor3 = Color3.fromRGB(150,0,0); d.TextColor3 = Color3.new(1,1,1)
+        d.MouseButton1Click:Connect(function() 
+            for i, v in ipairs(CurrentButtons) do if v.Btn == btnObj then table.remove(CurrentButtons, i) break end end 
+            btnObj:Destroy() UpdateKeyList() 
+        end)
+    end
+    KeyScroll.CanvasSize = UDim2.new(0,0,0, #CurrentButtons * 55)
+end
+
+local function CreateKeyButton(keyName, pos, sizeOffset)
+    local s = sizeOffset or GlobalKeySize
+    local KeyBtn = Instance.new("TextButton", ScreenGui)
+    KeyBtn.Size = UDim2.new(0, s, 0, s); KeyBtn.Position = pos or UDim2.new(0.5, 0, 0.5, 0)
+    KeyBtn.BackgroundColor3 = Color3.fromRGB(50, 50, 50); KeyBtn.Text = keyName or "?"; KeyBtn.TextColor3 = Color3.new(1, 1, 1); KeyBtn.Font = Enum.Font.GothamBold
+    Instance.new("UICorner", KeyBtn); MakeDraggable(KeyBtn)
+    
+    local KeyData = {Btn = KeyBtn, Code = keyName and Enum.KeyCode[keyName] or nil}
+    
+    local HoldStartTime = 0
+    KeyBtn.MouseButton1Down:Connect(function() HoldStartTime = tick() end)
+    KeyBtn.MouseButton1Up:Connect(function()
+        if tick() - HoldStartTime >= 2 then
+            KeyBtn.Text = "..."; local t = Instance.new("TextBox", KeyBtn); t.Size = UDim2.new(1,0,1,0); t.BackgroundTransparency = 1; t.Text = ""; t:CaptureFocus()
+            t.FocusLost:Connect(function() 
+                local k = t.Text:upper() 
+                if #k > 0 then 
+                    KeyData.Code = Enum.KeyCode[k] 
+                    KeyBtn.Text = k 
+                end 
+                t:Destroy() 
+            end)
+        else
+            if KeyData.Code then 
+                VirtualInputManager:SendKeyEvent(true, KeyData.Code, false, game) 
+                task.wait(0.05) 
+                VirtualInputManager:SendKeyEvent(false, KeyData.Code, false, game) 
+            end
+        end
+    end)
+    table.insert(CurrentButtons, KeyData); return KeyBtn
+end
+
+local function UpdateSlotList()
+    for _, v in pairs(SlotScroll:GetChildren()) do if v:IsA("TextButton") then v:Destroy() end end
+    local data = LoadData()
+    for name, _ in pairs(data) do
+        local b = Instance.new("TextButton", SlotScroll); b.Size = UDim2.new(1, -10, 0, 30); b.Text = name; b.BackgroundColor3 = Color3.fromRGB(50,50,50); b.TextColor3 = Color3.new(1,1,1)
+        b.MouseButton1Click:Connect(function() SlotNameInput.Text = name end)
+    end
+end
+
+-- [[ KẾT NỐI ]] --
+SaveSlotBtn.MouseButton1Click:Connect(function()
+    local name = SlotNameInput.Text; if name == "" then return end
+    local all = LoadData(); local layout = {}
+    for _, item in pairs(CurrentButtons) do
+        local btn = item.Btn
+        table.insert(layout, {Key = btn.Text, PX = btn.Position.X.Offset, PY = btn.Position.Y.Offset, SX = btn.Position.X.Scale, SY = btn.Position.Y.Scale, Size = btn.Size.X.Offset})
+    end
+    all[name] = layout; SaveData(all); UpdateSlotList()
+end)
+
+LoadSlotBtn.MouseButton1Click:Connect(function()
+    local all = LoadData(); local d = all[SlotNameInput.Text]
+    if d then
+        for _, b in pairs(CurrentButtons) do b.Btn:Destroy() end; CurrentButtons = {}
+        for _, i in pairs(d) do CreateKeyButton(i.Key, UDim2.new(i.SX, i.PX, i.SY, i.PY), i.Size) end
+    end
+end)
+
+MainBtn.MouseButton1Click:Connect(function() MenuFrame.Visible = not MenuFrame.Visible end)
+CloseMainMenu.MouseButton1Click:Connect(function() MenuFrame.Visible = false end)
+KeyListMenuBtn.MouseButton1Click:Connect(function() UpdateKeyList(); KeyListFrame.Visible = true; MenuFrame.Visible = false end)
+CloseKeyList.MouseButton1Click:Connect(function() KeyListFrame.Visible = false end)
+SlotMenuBtn.MouseButton1Click:Connect(function() UpdateSlotList(); SlotFrame.Visible = true; MenuFrame.Visible = false end)
+CloseSlotMenu.MouseButton1Click:Connect(function() SlotFrame.Visible = false end)
+HelpBtn.MouseButton1Click:Connect(function() HelpFrame.Visible = true; MenuFrame.Visible = false end)
+CloseHelp.MouseButton1Click:Connect(function() HelpFrame.Visible = false end)
+CreateBtn.MouseButton1Click:Connect(function() CreateKeyButton() end)
+SizeInputGlobal.FocusLost:Connect(function() local v = tonumber(SizeInputGlobal.Text) if v then GlobalKeySize = v for _, b in pairs(CurrentButtons) do b.Btn.Size = UDim2.new(0,v,0,v) end end end)
+LockBtn.MouseButton1Click:Connect(function() 
+    GlobalLocked = not GlobalLocked; 
+    LockBtn.Text = GlobalLocked and "KHÓA KÉO: ON" or "KHÓA KÉO: OFF" 
+    LockBtn.BackgroundColor3 = GlobalLocked and Color3.fromRGB(0, 150, 0) or Color3.fromRGB(180, 0, 0) 
+end)
+
+print("Ans keyboard loaded successfully!")
