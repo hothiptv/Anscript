@@ -1,0 +1,269 @@
+local UserInputService = game:GetService("UserInputService")
+local CoreGui = game:GetService("CoreGui")
+local TweenService = game:GetService("TweenService")
+
+local FOLDER_NAME = "Anscript_Files"
+if not isfolder(FOLDER_NAME) then makefolder(FOLDER_NAME) end
+
+local ScreenGui = Instance.new("ScreenGui", CoreGui)
+ScreenGui.Name = "Anscript_Manager_V5"
+ScreenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
+ScreenGui.ResetOnSpawn = false
+
+-- [[ HÀM THÔNG BÁO ]] --
+local function Notify(title, text)
+    local Frame = Instance.new("Frame", ScreenGui)
+    Frame.Size = UDim2.new(0, 220, 0, 70)
+    Frame.Position = UDim2.new(1, 10, 0.05, 0)
+    Frame.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
+    Frame.ZIndex = 5000
+    Instance.new("UICorner", Frame)
+    local Stroke = Instance.new("UIStroke", Frame)
+    Stroke.Color = Color3.fromRGB(0, 150, 255)
+
+    local Tl = Instance.new("TextLabel", Frame)
+    Tl.Size = UDim2.new(1, -10, 0.4, 0)
+    Tl.Position = UDim2.new(0, 10, 0, 0)
+    Tl.Text = title
+    Tl.TextColor3 = Color3.fromRGB(0, 150, 255)
+    Tl.BackgroundTransparency = 1
+    Tl.Font = "GothamBold"
+    Tl.TextXAlignment = "Left"
+
+    local Tx = Instance.new("TextLabel", Frame)
+    Tx.Size = UDim2.new(1, -20, 0.6, 0)
+    Tx.Position = UDim2.new(0, 10, 0.4, 0)
+    Tx.Text = text
+    Tx.TextColor3 = Color3.new(1, 1, 1)
+    Tx.BackgroundTransparency = 1
+    Tx.TextWrapped = true
+    Tx.TextXAlignment = "Left"
+
+    Frame:TweenPosition(UDim2.new(1, -230, 0.05, 0), "Out", "Quart", 0.5, true)
+    task.delay(3, function()
+        Frame:TweenPosition(UDim2.new(1, 10, 0.05, 0), "In", "Quart", 0.5, true)
+        task.wait(0.5)
+        Frame:Destroy()
+    end)
+end
+
+-- [[ HÀM KÉO THẢ ]] --
+local function MakeDraggable(UI)
+    local dragging, dragStart, startPos
+    UI.InputBegan:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+            dragging = true; dragStart = input.Position; startPos = UI.Position
+        end
+    end)
+    UserInputService.InputChanged:Connect(function(input)
+        if dragging and (input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch) then
+            local delta = input.Position - dragStart
+            UI.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
+        end
+    end)
+    UI.InputEnded:Connect(function() dragging = false end)
+end
+
+-- [[ GIAO DIỆN CHÍNH ]] --
+local MainFrame = Instance.new("Frame", ScreenGui)
+MainFrame.Size = UDim2.new(0, 550, 0, 350)
+MainFrame.Position = UDim2.new(0.5, -275, 0.5, -175)
+MainFrame.BackgroundColor3 = Color3.fromRGB(15, 15, 15)
+MainFrame.BorderSizePixel = 0
+Instance.new("UICorner", MainFrame)
+MakeDraggable(MainFrame)
+
+-- Sidebar
+local Sidebar = Instance.new("Frame", MainFrame)
+Sidebar.Size = UDim2.new(0, 120, 1, 0)
+Sidebar.BackgroundColor3 = Color3.fromRGB(22, 22, 22)
+Instance.new("UICorner", Sidebar)
+
+local Container = Instance.new("Frame", MainFrame)
+Container.Size = UDim2.new(1, -135, 1, -20)
+Container.Position = UDim2.new(0, 130, 0, 10)
+Container.BackgroundTransparency = 1
+
+local Sections = {}
+local function NewSection(name)
+    local f = Instance.new("ScrollingFrame", Container)
+    f.Size = UDim2.new(1, 0, 1, 0)
+    f.BackgroundTransparency = 1
+    f.Visible = false
+    f.ScrollBarThickness = 2
+    f.AutomaticCanvasSize = "Y"
+    Sections[name] = f
+    return f
+end
+
+local ExecSec = NewSection("Executor")
+local FileSec = NewSection("Files")
+local SettSec = NewSection("Settings")
+
+-- [[ 1. TAB EXECUTOR ]] --
+local Editor = Instance.new("TextBox", ExecSec)
+Editor.Size = UDim2.new(1, -5, 0.8, 0)
+Editor.BackgroundColor3 = Color3.fromRGB(10, 10, 10)
+Editor.Text = ""
+Editor.PlaceholderText = "-- Nhập script hoặc nội dung file tại đây..."
+Editor.TextColor3 = Color3.new(1, 1, 1)
+Editor.MultiLine = true
+Editor.ClearTextOnFocus = false
+Editor.TextXAlignment = "Left"
+Editor.TextYAlignment = "Top"
+Editor.Font = "Code"
+Editor.TextSize = 14
+Instance.new("UICorner", Editor)
+
+local BtnArea = Instance.new("Frame", ExecSec)
+BtnArea.Size = UDim2.new(1, 0, 0.15, 0)
+BtnArea.Position = UDim2.new(0, 0, 0.85, 0)
+BtnArea.BackgroundTransparency = 1
+
+local function QuickBtn(name, x, color, call)
+    local b = Instance.new("TextButton", BtnArea)
+    b.Size = UDim2.new(0.23, 0, 0.9, 0)
+    b.Position = UDim2.new(x, 0, 0, 0)
+    b.Text = name
+    b.BackgroundColor3 = color
+    b.TextColor3 = Color3.new(1, 1, 1)
+    b.Font = "GothamBold"
+    b.TextSize = 10
+    Instance.new("UICorner", b)
+    b.MouseButton1Click:Connect(call)
+end
+
+-- [[ UI TẠO FILE MỚI ]] --
+local CreatePopup = Instance.new("Frame", ScreenGui)
+CreatePopup.Size = UDim2.new(0, 300, 0, 160)
+CreatePopup.Position = UDim2.new(0.5, -150, 0.5, -80)
+CreatePopup.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
+CreatePopup.Visible = false
+CreatePopup.ZIndex = 1000
+Instance.new("UICorner", CreatePopup)
+Instance.new("UIStroke", CreatePopup).Color = Color3.fromRGB(0, 150, 255)
+
+local PopupTitle = Instance.new("TextLabel", CreatePopup)
+PopupTitle.Size = UDim2.new(1, 0, 0, 40)
+PopupTitle.Text = "TẠO / LƯU FILE"
+PopupTitle.TextColor3 = Color3.new(1,1,1)
+PopupTitle.Font = "GothamBold"
+PopupTitle.BackgroundTransparency = 1
+
+local FileNameInput = Instance.new("TextBox", CreatePopup)
+FileNameInput.Size = UDim2.new(0.8, 0, 0, 40)
+FileNameInput.Position = UDim2.new(0.1, 0, 0.3, 0)
+FileNameInput.PlaceholderText = "Tên file (vd: script1.lua)"
+FileNameInput.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
+FileNameInput.TextColor3 = Color3.new(1, 1, 1)
+Instance.new("UICorner", FileNameInput)
+
+local SaveBtn = Instance.new("TextButton", CreatePopup)
+SaveBtn.Size = UDim2.new(0.4, 0, 0, 35)
+SaveBtn.Position = UDim2.new(0.08, 0, 0.65, 0)
+SaveBtn.Text = "XÁC NHẬN"
+SaveBtn.BackgroundColor3 = Color3.fromRGB(0, 150, 0)
+SaveBtn.TextColor3 = Color3.new(1, 1, 1)
+Instance.new("UICorner", SaveBtn)
+
+local CancelBtn = Instance.new("TextButton", CreatePopup)
+CancelBtn.Size = UDim2.new(0.4, 0, 0, 35)
+CancelBtn.Position = UDim2.new(0.52, 0, 0.65, 0)
+CancelBtn.Text = "HỦY"
+CancelBtn.BackgroundColor3 = Color3.fromRGB(150, 0, 0)
+CancelBtn.TextColor3 = Color3.new(1, 1, 1)
+Instance.new("UICorner", CancelBtn)
+
+QuickBtn("RUN", 0, Color3.fromRGB(0, 130, 0), function() 
+    pcall(function() loadstring(Editor.Text)() end)
+    Notify("Hệ Thống", "Đang thực thi script...")
+end)
+QuickBtn("DÁN", 0.25, Color3.fromRGB(50, 50, 50), function() Editor.Text = getclipboard() or "" end)
+QuickBtn("XÓA", 0.5, Color3.fromRGB(100, 0, 0), function() Editor.Text = "" end)
+QuickBtn("LƯU FILE", 0.75, Color3.fromRGB(0, 100, 200), function() CreatePopup.Visible = true end)
+
+SaveBtn.MouseButton1Click:Connect(function()
+    if FileNameInput.Text ~= "" then
+        writefile(FOLDER_NAME.."/"..FileNameInput.Text, Editor.Text)
+        CreatePopup.Visible = false
+        FileNameInput.Text = ""
+        Notify("Thành công", "Đã lưu file vào bộ nhớ Roblox!")
+    end
+end)
+CancelBtn.MouseButton1Click:Connect(function() CreatePopup.Visible = false end)
+
+-- [[ 2. TAB FILE (TRUY CẬP FILE ROBLOX) ]] --
+local function RefreshFiles()
+    for _, v in pairs(FileSec:GetChildren()) do if v:IsA("Frame") then v:Destroy() end end
+    local allFiles = listfiles(FOLDER_NAME)
+    
+    for i, path in ipairs(allFiles) do
+        local name = path:gsub(FOLDER_NAME.."/", "")
+        local frame = Instance.new("Frame", FileSec)
+        frame.Size = UDim2.new(1, -10, 0, 45)
+        frame.Position = UDim2.new(0, 0, 0, (i-1)*50)
+        frame.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
+        Instance.new("UICorner", frame)
+
+        local label = Instance.new("TextLabel", frame)
+        label.Size = UDim2.new(0.4, 0, 1, 0)
+        label.Position = UDim2.new(0.05, 0, 0, 0)
+        label.Text = name; label.TextColor3 = Color3.new(1,1,1)
+        label.BackgroundTransparency = 1; label.TextXAlignment = "Left"
+
+        local function b(txt, x, col, func)
+            local btn = Instance.new("TextButton", frame)
+            btn.Size = UDim2.new(0.16, 0, 0.7, 0)
+            btn.Position = UDim2.new(x, 0, 0.15, 0)
+            btn.Text = txt; btn.BackgroundColor3 = col; btn.TextColor3 = Color3.new(1,1,1)
+            Instance.new("UICorner", btn); btn.MouseButton1Click:Connect(func)
+        end
+
+        b("Run", 0.45, Color3.fromRGB(0, 100, 0), function() loadstring(readfile(path))(); Notify("File", "Đang chạy file "..name) end)
+        b("Sửa", 0.63, Color3.fromRGB(120, 120, 0), function() 
+            Editor.Text = readfile(path)
+            Sections.Executor.Visible = true
+            Sections.Files.Visible = false
+            Notify("Editor", "Đã nạp dữ liệu file để sửa!")
+        end)
+        b("Xóa", 0.81, Color3.fromRGB(150, 0, 0), function() delfile(path); RefreshFiles(); Notify("File", "Đã xóa file!") end)
+    end
+end
+
+-- [[ 3. TAB SETTINGS ]] --
+local CloseUI = Instance.new("TextButton", SettSec)
+CloseUI.Size = UDim2.new(1, -10, 0, 45)
+CloseUI.Text = "TẮT HOÀN TOÀN UI"
+CloseUI.BackgroundColor3 = Color3.fromRGB(150, 0, 0)
+CloseUI.TextColor3 = Color3.new(1, 1, 1)
+CloseUI.Font = "GothamBold"
+Instance.new("UICorner", CloseUI)
+CloseUI.MouseButton1Click:Connect(function() ScreenGui:Destroy() end)
+
+-- [[ SIDEBAR TABS ]] --
+local function Tab(n, y)
+    local btn = Instance.new("TextButton", Sidebar)
+    btn.Size = UDim2.new(0.9, 0, 0, 45)
+    btn.Position = UDim2.new(0.05, 0, 0, y)
+    btn.Text = n; btn.BackgroundColor3 = Color3.fromRGB(30, 30, 30); btn.TextColor3 = Color3.new(1,1,1)
+    btn.Font = "GothamBold"
+    Instance.new("UICorner", btn)
+    btn.MouseButton1Click:Connect(function()
+        for k, v in pairs(Sections) do v.Visible = (k == n) end
+        if n == "Files" then RefreshFiles() end
+    end)
+end
+Tab("Executor", 15); Tab("Files", 70); Tab("Settings", 125)
+
+-- Nút "A" (Ẩn/Hiện)
+local Toggle = Instance.new("TextButton", ScreenGui)
+Toggle.Size = UDim2.new(0, 55, 0, 55)
+Toggle.Position = UDim2.new(0, 15, 0.5, -27)
+Toggle.Text = "A"; Toggle.BackgroundColor3 = Color3.fromRGB(0, 150, 255)
+Toggle.TextColor3 = Color3.new(1,1,1); Toggle.TextSize = 25; Toggle.Font = "GothamBold"
+Instance.new("UICorner", Toggle).CornerRadius = UDim.new(1, 0)
+MakeDraggable(Toggle)
+Toggle.MouseButton1Click:Connect(function() MainFrame.Visible = not MainFrame.Visible end)
+
+Sections.Executor.Visible = true
+Notify("Anscript V5", "Đã sẵn sàng quản lý file!")
