@@ -1,0 +1,136 @@
+local VirtualInputManager = game:GetService("VirtualInputManager")
+local HttpService = game:GetService("HttpService")
+local Player = game.Players.LocalPlayer
+
+-- Khởi tạo UI
+local ScreenGui = game:GetService("CoreGui"):FindFirstChild("AnscriptPiano") or Instance.new("ScreenGui", game:GetService("CoreGui"))
+ScreenGui.Name = "AnscriptPiano"
+
+local allButtons = {}
+local isSetupMode = false
+local FILE_NAME = "Anscript_Positions_V3.json"
+
+-- Hàm lưu vị trí
+local function savePositions()
+    local data = {}
+    for name, btn in pairs(allButtons) do
+        data[name] = {btn.Position.X.Scale, btn.Position.X.Offset, btn.Position.Y.Scale, btn.Position.Y.Offset}
+    end
+    -- Kiểm tra nếu môi trường hỗ trợ ghi file (như Fluxus, Delta, Arceus X...)
+    if writefile then
+        writefile(FILE_NAME, HttpService:JSONEncode(data))
+    end
+end
+
+-- Hàm tải vị trí
+local function loadPositions()
+    if isfile and isfile(FILE_NAME) then
+        local data = HttpService:JSONDecode(readfile(FILE_NAME))
+        for name, pos in pairs(data) do
+            if allButtons[name] then
+                allButtons[name].Position = UDim2.new(pos[1], pos[2], pos[3], pos[4])
+            end
+        end
+    end
+end
+
+-- Hàm tạo nút bấm
+local function createBtn(name, text, color, size, pos)
+    local btn = Instance.new("TextButton")
+    btn.Name = name
+    btn.Size = size or UDim2.new(0, 80, 0, 80)
+    btn.Position = pos or UDim2.new(0.5, 0, 0.5, 0)
+    btn.Text = text
+    btn.BackgroundColor3 = color or Color3.fromRGB(35, 35, 40)
+    btn.TextColor3 = Color3.new(1, 1, 1)
+    btn.Font = Enum.Font.SourceSansBold
+    btn.TextSize = 30
+    btn.Active = true
+    btn.Draggable = false 
+    btn.Parent = ScreenGui
+    
+    local corner = Instance.new("UICorner")
+    corner.CornerRadius = UDim.new(0, 15)
+    corner.Parent = btn
+    
+    allButtons[name] = btn
+    return btn
+end
+
+-- 1. TẠO 5 NÚT CHÍNH (1, 2, 3, 4, G)
+local keyData = {
+    {name = "Btn1", text = "1", code = Enum.KeyCode.One, pos = UDim2.new(0.2, 0, 0.7, 0)},
+    {name = "Btn2", text = "2", code = Enum.KeyCode.Two, pos = UDim2.new(0.3, 0, 0.7, 0)},
+    {name = "Btn3", text = "3", code = Enum.KeyCode.Three, pos = UDim2.new(0.4, 0, 0.7, 0)},
+    {name = "Btn4", text = "4", code = Enum.KeyCode.Four, pos = UDim2.new(0.5, 0, 0.7, 0)},
+    {name = "BtnG", text = "G", code = Enum.KeyCode.G, pos = UDim2.new(0.6, 0, 0.7, 0)}
+}
+
+for _, data in pairs(keyData) do
+    local b = createBtn(data.name, data.text, Color3.fromRGB(40, 40, 45), UDim2.new(0, 85, 0, 85), data.pos)
+    b.InputBegan:Connect(function(input)
+        if (input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch) and not isSetupMode then
+            task.spawn(function()
+                VirtualInputManager:SendKeyEvent(true, data.code, false, game)
+                task.wait(0.01)
+                VirtualInputManager:SendKeyEvent(false, data.code, false, game)
+            end)
+            -- Hiệu ứng nháy
+            b.BackgroundColor3 = Color3.fromRGB(0, 255, 150)
+            task.wait(0.1)
+            b.BackgroundColor3 = Color3.fromRGB(40, 40, 45)
+        end
+    end)
+end
+
+-- 2. NÚT FIX (Esc x2)
+local FixBtn = createBtn("FixBtn", "FIX", Color3.fromRGB(0, 120, 215), UDim2.new(0, 80, 0, 50), UDim2.new(0.1, 0, 0.2, 0))
+FixBtn.MouseButton1Click:Connect(function()
+    if not isSetupMode then
+        task.spawn(function()
+            for i = 1, 2 do
+                VirtualInputManager:SendKeyEvent(true, Enum.KeyCode.Escape, false, game)
+                task.wait(0.05)
+                VirtualInputManager:SendKeyEvent(false, Enum.KeyCode.Escape, false, game)
+                task.wait(0.1)
+            end
+        end)
+    end
+end)
+
+-- 3. NÚT TẮT SCRIPT
+local ExitBtn = createBtn("ExitBtn", "TẮT", Color3.fromRGB(150, 0, 0), UDim2.new(0, 80, 0, 50), UDim2.new(0.1, 0, 0.3, 0))
+ExitBtn.MouseButton1Click:Connect(function()
+    if not isSetupMode then ScreenGui:Destroy() end
+end)
+
+-- 4. NÚT SETUP (Khóa/Mở vị trí)
+local SetupBtn = createBtn("SetupBtn", "SETUP: OFF", Color3.fromRGB(100, 100, 100), UDim2.new(0, 120, 0, 55), UDim2.new(0.1, 0, 0.1, 0))
+SetupBtn.MouseButton1Click:Connect(function()
+    isSetupMode = not isSetupMode
+    SetupBtn.Text = isSetupMode and "SETUP: ON" or "SETUP: OFF"
+    SetupBtn.BackgroundColor3 = isSetupMode and Color3.fromRGB(0, 150, 0) or Color3.fromRGB(100, 100, 100)
+    
+    for _, btn in pairs(allButtons) do
+        btn.Draggable = isSetupMode -- Mở khóa kéo cho TẤT CẢ các nút
+        btn.BackgroundTransparency = isSetupMode and 0.5 or 0
+    end
+    
+    if not isSetupMode then 
+        savePositions() -- Lưu lại khi bấm OFF
+        print("Đã lưu vị trí các nút!")
+    end
+end)
+
+-- Tải vị trí cũ nếu có
+pcall(loadPositions)
+
+-- Tự động Reset khi máu <= 15
+task.spawn(function()
+    while task.wait(0.4) do
+        local hum = Player.Character and Player.Character:FindFirstChild("Humanoid")
+        if hum and hum.Health > 0 and hum.Health <= 15 then 
+            hum.Health = 0 
+        end
+    end
+end)
