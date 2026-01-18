@@ -1,96 +1,50 @@
 <!DOCTYPE html>
-<html lang="vi">
+<html>
 <head>
     <meta charset="UTF-8">
-    <title>AN ADMIN DASHBOARD 2026</title>
+    <title>AN ADMIN</title>
     <style>
-        :root { --primary: #bdacff; --bg: #0a0a0a; --panel: #161616; --text: #eee; }
-        * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Inter', sans-serif; }
-        body { background: var(--bg); color: var(--text); display: flex; justify-content: center; align-items: center; height: 100vh; }
-        
-        .container { width: 500px; height: 700px; background: var(--panel); border-radius: 20px; display: flex; flex-direction: column; border: 1px solid #333; box-shadow: 0 20px 50px rgba(0,0,0,0.5); position: relative; }
-        
-        .header { padding: 20px; background: #1e1e1e; border-bottom: 2px solid var(--primary); text-align: center; }
-        .header h2 { color: var(--primary); font-size: 1.2rem; letter-spacing: 3px; }
-
-        .name-config { padding: 15px; background: #111; display: flex; gap: 10px; border-bottom: 1px solid #222; }
-        .name-config input { flex: 1; background: #000; border: 1px solid #444; padding: 8px; border-radius: 5px; color: var(--primary); outline: none; }
-
-        #chat-box { flex: 1; padding: 20px; overflow-y: auto; display: flex; flex-direction: column; gap: 12px; }
-        .msg { max-width: 80%; padding: 10px 15px; border-radius: 12px; font-size: 0.9rem; position: relative; animation: fadeIn 0.3s ease; }
-        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
-        
-        .msg.me { align-self: flex-end; background: var(--primary); color: #000; border-bottom-right-radius: 2px; }
-        .msg.roblox { align-self: flex-start; background: #2a2a2a; border-bottom-left-radius: 2px; border-left: 4px solid var(--primary); }
-        .msg .sender { font-size: 0.7rem; font-weight: bold; margin-bottom: 4px; display: block; }
-        
-        .input-area { padding: 20px; display: flex; gap: 10px; background: #1e1e1e; }
-        .input-area input { flex: 1; background: #000; border: none; padding: 12px; border-radius: 10px; color: #fff; outline: none; }
-        .input-area button { background: var(--primary); color: #000; border: none; padding: 0 20px; border-radius: 10px; font-weight: bold; cursor: pointer; transition: 0.2s; }
-        .input-area button:hover { transform: scale(1.05); background: #a592ff; }
+        body { background: #000; color: #bdacff; font-family: sans-serif; display: flex; flex-direction: column; align-items: center; padding: 20px; }
+        #box { width: 400px; height: 500px; border: 1px solid #333; overflow-y: auto; padding: 10px; background: #111; margin-bottom: 10px; border-radius: 10px; }
+        input { width: 300px; padding: 10px; background: #222; border: 1px solid #bdacff; color: #fff; border-radius: 5px; }
+        button { padding: 10px 20px; background: #bdacff; border: none; cursor: pointer; font-weight: bold; border-radius: 5px; }
+        .msg { margin-bottom: 8px; font-size: 14px; }
     </style>
 </head>
 <body>
-    <div class="container">
-        <div class="header">
-            <h2>AN ADMIN PANEL</h2>
-            <div id="status" style="font-size: 0.7rem; margin-top: 5px; color: #ff4d4d;">● DISCONNECTED</div>
-        </div>
-        
-        <div class="name-config">
-            <input type="text" id="adminName" placeholder="Nhập tên của bạn để chat..." onchange="saveName()">
-        </div>
-
-        <div id="chat-box"></div>
-
-        <div class="input-area">
-            <input type="text" id="msgInput" placeholder="Nhắn tin tới Roblox..." onkeypress="if(event.key==='Enter') send()">
-            <button onclick="send()">GỬI</button>
-        </div>
+    <h2>ANSCRIPT ADMIN PANEL</h2>
+    <div id="status">Đang kết nối...</div>
+    <div id="box"></div>
+    <div>
+        <input type="text" id="inp" placeholder="Nhập tin nhắn...">
+        <button onclick="send()">GỬI</button>
     </div>
 
     <script>
-        const RAILWAY_URL = "wss://anscript-production.up.railway.app"; // Thay link của bạn
-        const socket = new WebSocket(RAILWAY_URL);
-        const adminNameInput = document.getElementById('adminName');
-
-        // Load tên đã lưu
-        adminNameInput.value = localStorage.getItem('ansAdminName') || "";
-
-        function saveName() {
-            localStorage.setItem('ansAdminName', adminNameInput.value);
-        }
-
-        socket.onopen = () => {
-            document.getElementById('status').innerText = "● SERVER ONLINE";
-            document.getElementById('status').style.color = "#00ff88";
-        };
-
-        socket.onmessage = (event) => {
-            const data = event.data;
-            addMessage(data, 'roblox');
+        const socket = new WebSocket("wss://anscript-production.up.railway.app"); // THAY LINK CỦA AN
+        const box = document.getElementById('box');
+        
+        socket.onopen = () => { document.getElementById('status').innerText = "ONLINE"; };
+        socket.onmessage = (e) => {
+            let d = document.createElement('div');
+            d.className = "msg";
+            d.innerText = "🎮 " + e.data;
+            box.appendChild(d);
+            box.scrollTop = box.scrollHeight;
         };
 
         function send() {
-            const name = adminNameInput.value.trim();
-            const text = document.getElementById('msgInput').value.trim();
-            
-            if (!name) { alert("Vui lòng nhập tên trước!"); return; }
-            if (text && socket.readyState === WebSocket.OPEN) {
-                const fullMsg = `[ADMIN] ${name}: ${text}`;
-                socket.send(fullMsg);
-                addMessage(fullMsg, 'me');
-                document.getElementById('msgInput').value = "";
+            let val = document.getElementById('inp').value;
+            if(val) {
+                // Thêm tiền tố [ADMIN] để Server biết đây là lệnh từ bạn
+                socket.send("[ADMIN] An: " + val); 
+                let d = document.createElement('div');
+                d.className = "msg";
+                d.style.color = "#fff";
+                d.innerText = "💻 Bạn: " + val;
+                box.appendChild(d);
+                document.getElementById('inp').value = "";
             }
-        }
-
-        function addMessage(text, type) {
-            const div = document.createElement('div');
-            div.className = `msg ${type}`;
-            div.innerHTML = `<span class="sender">${type === 'me' ? 'BẠN' : 'ROBLOX'}</span>${text}`;
-            const box = document.getElementById('chat-box');
-            box.appendChild(div);
-            box.scrollBy(0, 1000);
         }
     </script>
 </body>
