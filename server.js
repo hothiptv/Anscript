@@ -1,39 +1,36 @@
-const express = require("express");
-const path = require("path");
-const app = express();
+// server.js
+const WebSocket = require('ws');
+const readline = require('readline');
 
-let currentKey = "";
-let expireAt = 0;
+const wss = new WebSocket.Server({ port: 8080 });
 
-function genKey() {
-    return "ans-" + Math.random().toString(36).slice(2, 8);
-}
-
-function refreshKey() {
-    currentKey = genKey();
-    expireAt = Date.now() + 60 * 60 * 1000;
-}
-
-refreshKey();
-setInterval(refreshKey, 60 * 60 * 1000);
-
-// TRẢ HTML
-app.get("/", (req, res) => {
-    res.sendFile(path.join(__dirname, "index.html"));
+// Tạo giao diện nhập liệu từ Terminal để gửi tin nhắn tới Roblox
+const rl = readline.createInterface({
+    input: process.stdin,
+    output: process.stdout
 });
 
-// API
-app.get("/key", (req, res) => {
-    res.json({ key: currentKey, expire: expireAt });
-});
+console.log("Server đang chạy tại port 8080...");
 
-app.get("/verify", (req, res) => {
-    const { key } = req.query;
-    res.json({ valid: key === currentKey });
-});
+wss.on('connection', (ws) => {
+    console.log("Roblox đã kết nối!");
 
-// ⚠️ QUAN TRỌNG NHẤT
-const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => {
-    console.log("ANSCRIPT ONLINE ON PORT", PORT);
+    // Khi nhận tin nhắn từ Roblox
+    ws.on('message', (message) => {
+        console.log(`\n[Roblox gửi]: ${message}`);
+        process.stdout.write("Nhập tin nhắn gửi tới Roblox: ");
+    });
+
+    // Hàm nhập tin nhắn từ Terminal để gửi đi
+    const askMessage = () => {
+        rl.question("Nhập tin nhắn gửi tới Roblox: ", (msg) => {
+            ws.send(msg); // Gửi tới Roblox
+            askMessage();
+        });
+    };
+    askMessage();
+
+    ws.on('close', () => {
+        console.log("Roblox đã ngắt kết nối.");
+    });
 });
