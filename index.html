@@ -1,53 +1,111 @@
 <!DOCTYPE html>
-<html>
+<html lang="vi">
 <head>
-    <title>Anscript Hub Admin Control</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Anscript Hub - Admin Control Panel</title>
     <style>
-        body { font-family: 'Segoe UI', sans-serif; background: #1a1a1a; color: white; display: flex; justify-content: center; padding: 20px; }
-        .chat-container { width: 400px; background: #252525; border-radius: 10px; padding: 20px; box-shadow: 0 10px 30px rgba(0,0,0,0.5); }
-        h2 { color: #bdacff; text-align: center; }
-        #messages { height: 300px; overflow-y: auto; border: 1px solid #333; padding: 10px; margin-bottom: 10px; display: flex; flex-direction: column; }
-        .msg { margin: 5px 0; padding: 8px 12px; border-radius: 5px; max-width: 80%; }
-        .web { background: #bdacff; color: black; align-self: flex-end; }
-        .roblox { background: #444; color: white; align-self: flex-start; }
-        .input-area { display: flex; gap: 10px; }
-        input { flex: 1; padding: 10px; border-radius: 5px; border: none; outline: none; }
-        button { padding: 10px 20px; background: #bdacff; border: none; border-radius: 5px; cursor: pointer; font-weight: bold; }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: #0f0f0f; color: #fff; display: flex; justify-content: center; align-items: center; height: 100vh; }
+        
+        .admin-panel { width: 450px; height: 600px; background: #1a1a1a; border-radius: 15px; display: flex; flex-direction: column; box-shadow: 0 0 20px rgba(189, 172, 255, 0.2); border: 1px solid #333; overflow: hidden; }
+        
+        /* Header */
+        .header { background: #252525; padding: 15px; text-align: center; border-bottom: 2px solid #bdacff; }
+        .header h2 { color: #bdacff; font-size: 1.2rem; text-transform: uppercase; letter-spacing: 2px; }
+        .status { font-size: 0.8rem; margin-top: 5px; color: #ff4d4d; }
+        .status.online { color: #00ff88; }
+
+        /* Chat Box */
+        #chat-box { flex: 1; padding: 15px; overflow-y: auto; display: flex; flex-direction: column; gap: 10px; background: #111; }
+        
+        .message { max-width: 85%; padding: 10px 15px; border-radius: 10px; font-size: 0.9rem; line-height: 1.4; position: relative; }
+        .message.web { align-self: flex-end; background: #bdacff; color: #000; border-bottom-right-radius: 2px; }
+        .message.roblox { align-self: flex-start; background: #333; color: #fff; border-bottom-left-radius: 2px; border-left: 3px solid #bdacff; }
+        
+        .message .time { font-size: 0.7rem; opacity: 0.6; display: block; margin-top: 5px; }
+
+        /* Input Area */
+        .input-area { padding: 15px; background: #252525; display: flex; gap: 10px; }
+        input { flex: 1; background: #111; border: 1px solid #444; padding: 12px; border-radius: 8px; color: #fff; outline: none; transition: 0.3s; }
+        input:focus { border-color: #bdacff; }
+        button { background: #bdacff; color: #000; border: none; padding: 0 20px; border-radius: 8px; font-weight: bold; cursor: pointer; transition: 0.3s; }
+        button:hover { background: #a592ff; transform: scale(1.05); }
     </style>
 </head>
 <body>
-    <div class="chat-container">
-        <h2>ANSCRIPT ADMIN</h2>
-        <div id="messages"></div>
+
+    <div class="admin-panel">
+        <div class="header">
+            <h2>ANSCRIPT ADMIN</h2>
+            <div id="status" class="status">Đang kết nối server...</div>
+        </div>
+
+        <div id="chat-box">
+            </div>
+
         <div class="input-area">
-            <input type="text" id="msgInput" placeholder="Nhập tin nhắn...">
-            <button onclick="send()">GỬI</button>
+            <input type="text" id="userInput" placeholder="Gửi tin nhắn tới Roblox..." onkeypress="checkEnter(event)">
+            <button onclick="sendMessage()">GỬI</button>
         </div>
     </div>
 
     <script>
-        const socket = new WebSocket('ws://localhost:8080');
-        const msgDiv = document.getElementById('messages');
+        // THAY LINK RAILWAY CỦA BẠN VÀO ĐÂY (Giữ lại wss://)
+        const RAILWAY_URL = "wss://TEN-PROJECT-CUA-BAN.up.railway.app";
+        
+        const socket = new WebSocket(RAILWAY_URL);
+        const chatBox = document.getElementById('chat-box');
+        const statusDiv = document.getElementById('status');
+        const userInput = document.getElementById('userInput');
 
+        // Khi kết nối thành công
+        socket.onopen = () => {
+            statusDiv.innerText = "● SERVER ONLINE";
+            statusDiv.classList.add('online');
+        };
+
+        // Khi kết nối bị ngắt
+        socket.onclose = () => {
+            statusDiv.innerText = "● SERVER OFFLINE";
+            statusDiv.classList.remove('online');
+        };
+
+        // Khi nhận tin nhắn từ Roblox
         socket.onmessage = (event) => {
             addMessage(event.data, 'roblox');
         };
 
-        function send() {
-            const input = document.getElementById('msgInput');
-            if (input.value) {
-                socket.send(input.value);
-                addMessage(input.value, 'web');
-                input.value = '';
+        // Hàm gửi tin nhắn
+        function sendMessage() {
+            const text = userInput.value.trim();
+            if (text !== "" && socket.readyState === WebSocket.OPEN) {
+                socket.send(text); // Gửi qua Server
+                addMessage(text, 'web'); // Hiển thị lên màn hình web
+                userInput.value = "";
             }
         }
 
+        // Hàm hiển thị tin nhắn lên giao diện
         function addMessage(text, type) {
-            const div = document.createElement('div');
-            div.className = `msg ${type}`;
-            div.innerText = (type === 'roblox' ? "🎮 Roblox: " : "💻 Bạn: ") + text;
-            msgDiv.appendChild(div);
-            msgDiv.scrollTop = msgDiv.scrollHeight;
+            const now = new Date();
+            const timeString = now.getHours() + ":" + now.getMinutes().toString().padStart(2, '0');
+            
+            const msgDiv = document.createElement('div');
+            msgDiv.className = `message ${type}`;
+            
+            const content = type === 'roblox' ? `<b>🎮 Roblox:</b><br>${text}` : `<b>💻 Admin:</b><br>${text}`;
+            msgDiv.innerHTML = `${content} <span class="time">${timeString}</span>`;
+            
+            chatBox.appendChild(msgDiv);
+            chatBox.scrollTop = chatBox.scrollHeight; // Tự động cuộn xuống cuối
+        }
+
+        // Nhấn Enter để gửi
+        function checkEnter(event) {
+            if (event.key === "Enter") {
+                sendMessage();
+            }
         }
     </script>
 </body>
