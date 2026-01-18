@@ -1,57 +1,54 @@
 <!DOCTYPE html>
-<html lang="vi">
+<html>
 <head>
-<meta charset="UTF-8">
-<title>ANSCRIPT - Get Key</title>
-<style>
-body {
-    background:#0f0f1a;
-    color:#fff;
-    font-family: Arial;
-    display:flex;
-    justify-content:center;
-    align-items:center;
-    height:100vh;
-}
-.box {
-    background:#1a1a2e;
-    padding:30px;
-    border-radius:12px;
-    text-align:center;
-    width:320px;
-}
-button {
-    margin-top:15px;
-    padding:10px 20px;
-    border:none;
-    border-radius:8px;
-    background:#9b6bff;
-    color:white;
-    font-size:16px;
-    cursor:pointer;
-}
-#key {
-    margin-top:15px;
-    font-size:18px;
-    color:#7CFF9E;
-}
-</style>
+    <title>Anscript Hub Admin Control</title>
+    <style>
+        body { font-family: 'Segoe UI', sans-serif; background: #1a1a1a; color: white; display: flex; justify-content: center; padding: 20px; }
+        .chat-container { width: 400px; background: #252525; border-radius: 10px; padding: 20px; box-shadow: 0 10px 30px rgba(0,0,0,0.5); }
+        h2 { color: #bdacff; text-align: center; }
+        #messages { height: 300px; overflow-y: auto; border: 1px solid #333; padding: 10px; margin-bottom: 10px; display: flex; flex-direction: column; }
+        .msg { margin: 5px 0; padding: 8px 12px; border-radius: 5px; max-width: 80%; }
+        .web { background: #bdacff; color: black; align-self: flex-end; }
+        .roblox { background: #444; color: white; align-self: flex-start; }
+        .input-area { display: flex; gap: 10px; }
+        input { flex: 1; padding: 10px; border-radius: 5px; border: none; outline: none; }
+        button { padding: 10px 20px; background: #bdacff; border: none; border-radius: 5px; cursor: pointer; font-weight: bold; }
+    </style>
 </head>
 <body>
-<div class="box">
-    <h2>ANSCRIPT GET KEY</h2>
-    <button onclick="getKey()">LẤY KEY</button>
-    <div id="key"></div>
-</div>
+    <div class="chat-container">
+        <h2>ANSCRIPT ADMIN</h2>
+        <div id="messages"></div>
+        <div class="input-area">
+            <input type="text" id="msgInput" placeholder="Nhập tin nhắn...">
+            <button onclick="send()">GỬI</button>
+        </div>
+    </div>
 
-<script>
-function getKey() {
-    fetch("/key")
-        .then(res => res.json())
-        .then(data => {
-            document.getElementById("key").innerText = data.key;
-        });
-}
-</script>
+    <script>
+        const socket = new WebSocket('ws://localhost:8080');
+        const msgDiv = document.getElementById('messages');
+
+        socket.onmessage = (event) => {
+            addMessage(event.data, 'roblox');
+        };
+
+        function send() {
+            const input = document.getElementById('msgInput');
+            if (input.value) {
+                socket.send(input.value);
+                addMessage(input.value, 'web');
+                input.value = '';
+            }
+        }
+
+        function addMessage(text, type) {
+            const div = document.createElement('div');
+            div.className = `msg ${type}`;
+            div.innerText = (type === 'roblox' ? "🎮 Roblox: " : "💻 Bạn: ") + text;
+            msgDiv.appendChild(div);
+            msgDiv.scrollTop = msgDiv.scrollHeight;
+        }
+    </script>
 </body>
 </html>
