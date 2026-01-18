@@ -1,36 +1,39 @@
-// server.js
 const WebSocket = require('ws');
-const readline = require('readline');
-
 const wss = new WebSocket.Server({ port: 8080 });
-
-// Tạo giao diện nhập liệu từ Terminal để gửi tin nhắn tới Roblox
-const rl = readline.createInterface({
-    input: process.stdin,
-    output: process.stdout
-});
 
 console.log("Server đang chạy tại port 8080...");
 
-wss.on('connection', (ws) => {
-    console.log("Roblox đã kết nối!");
+let clients = {
+    web: null,
+    roblox: null
+};
 
-    // Khi nhận tin nhắn từ Roblox
-    ws.on('message', (message) => {
-        console.log(`\n[Roblox gửi]: ${message}`);
-        process.stdout.write("Nhập tin nhắn gửi tới Roblox: ");
+wss.on('connection', (ws, req) => {
+    // Kiểm tra xem ai đang kết nối dựa trên User-Agent hoặc Header
+    const isRoblox = req.headers['user-agent'] && req.headers['user-agent'].includes('Roblox');
+
+    if (isRoblox) {
+        clients.roblox = ws;
+        console.log("Roblox đã kết nối!");
+    } else {
+        clients.web = ws;
+        console.log("Trình duyệt Web đã kết nối!");
+    }
+
+    ws.on('message', (data) => {
+        const message = data.toString();
+        
+        if (ws === clients.web && clients.roblox) {
+            // Web gửi -> Roblox nhận
+            clients.roblox.send(message);
+        } else if (ws === clients.roblox && clients.web) {
+            // Roblox gửi -> Web nhận
+            clients.web.send(message);
+        }
     });
 
-    // Hàm nhập tin nhắn từ Terminal để gửi đi
-    const askMessage = () => {
-        rl.question("Nhập tin nhắn gửi tới Roblox: ", (msg) => {
-            ws.send(msg); // Gửi tới Roblox
-            askMessage();
-        });
-    };
-    askMessage();
-
     ws.on('close', () => {
-        console.log("Roblox đã ngắt kết nối.");
+        if (ws === clients.roblox) console.log("Roblox ngắt kết nối.");
+        if (ws === clients.web) console.log("Web ngắt kết nối.");
     });
 });
