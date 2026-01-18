@@ -1,48 +1,48 @@
 const WebSocket = require('ws');
-const port = process.env.PORT || 8080;
-const wss = new WebSocket.Server({ port });
+const http = require('http');
 
-console.log(`Server đang chạy online tại cổng: ${port}`);
+// Tạo một server HTTP cơ bản để "đánh lừa" Railway không báo lỗi
+const server = http.createServer((req, res) => {
+    res.writeHead(200, { 'Content-Type': 'text/plain' });
+    res.end('Anscript Server is Running');
+});
+
+const wss = new WebSocket.Server({ server });
+
+const port = process.env.PORT || 8080;
 
 let webClient = null;
 let robloxClients = new Set();
 
 wss.on('connection', (ws, req) => {
-    // Kiểm tra xem là Web hay Roblox
     const isRoblox = req.headers['user-agent'] && req.headers['user-agent'].includes('Roblox');
 
     if (isRoblox) {
         robloxClients.add(ws);
-        console.log("Một người dùng Roblox đã kết nối!");
-        if (webClient) webClient.send("Hệ thống: Một người dùng mới vừa chạy Script!");
+        if (webClient) webClient.send("Hệ thống: Một người dùng Roblox vừa kết nối!");
     } else {
         webClient = ws;
-        console.log("Admin đã kết nối từ trình duyệt Web!");
+        console.log("Admin đã kết nối!");
     }
 
     ws.on('message', (data) => {
         const message = data.toString();
-
         if (ws === webClient) {
-            // Admin gửi từ Web -> Gửi cho TẤT CẢ máy đang chạy Roblox
             robloxClients.forEach(client => {
-                if (client.readyState === WebSocket.OPEN) {
-                    client.send(message);
-                }
+                if (client.readyState === WebSocket.OPEN) client.send(message);
             });
         } else {
-            // Roblox gửi -> Gửi về cho Admin trên Web
-            if (webClient && webClient.readyState === WebSocket.OPEN) {
-                webClient.send(message);
-            }
+            if (webClient) webClient.send(message);
         }
     });
 
     ws.on('close', () => {
-        if (ws === webClient) {
-            webClient = null;
-        } else {
-            robloxClients.delete(ws);
-        }
+        if (ws === webClient) webClient = null;
+        else robloxClients.delete(ws);
     });
+});
+
+// Quan trọng: Phải dùng server.listen thay vì wss.listen
+server.listen(port, () => {
+    console.log(`Server đang chạy online tại cổng: ${port}`);
 });
